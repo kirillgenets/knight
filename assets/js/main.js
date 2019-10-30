@@ -6,8 +6,10 @@ const startForm = startPage.querySelector('form');
 const nameField = startForm.querySelector('.start-name');
 const startButton = startForm.querySelector('.start-submit');
 const gamePage = document.querySelector('.screen-game');
-const gamePageNameInfo = gamePage.querySelector('.user-info');
-const timerValueSpan = gamePage.querySelector('.timer-value');
+const scoreElement = gamePage.querySelector('.kills-value');
+const nameInfo = gamePage.querySelector('.user-info');
+const pauseModal = gamePage.querySelector('.pause');
+const timeElement = gamePage.querySelector('.timer-value');
 const rankingPage = document.querySelector('.screen-ranking');
 
 const settings = {
@@ -25,10 +27,23 @@ rankingPage.classList.add('hidden');
 
 nameField.addEventListener('input', onNameFieldInput);
 startForm.addEventListener('submit', onStartFormSubmit);
-document.addEventListener('keydown', onGameKeyDown);
-document.addEventListener('keyup', onGameKeyUp);
 
 // функции-обработчики событий
+
+function onEscKeyDown(evt) {
+  isEscEvent(evt, () => {
+    pauseModal.classList.toggle('hidden');
+    
+    if (settings.isStarted) {
+      settings.isStarted = false;
+    } else {
+      settings.isStarted = true;
+      playGame();
+    }
+
+    settings.pauseTime = new Date().getTime();
+  });
+}
 
 function onGameKeyDown(evt) {
   switch (evt.key) {
@@ -72,6 +87,14 @@ function onStartFormSubmit(evt) {
   initGame();
 }
 
+// проверка события ESC
+
+function isEscEvent(evt, callback) {
+	if (evt.key === 'Escape') {
+		callback();
+	}
+}
+
 // игровые функции
 
 function initGame() {
@@ -79,7 +102,7 @@ function initGame() {
     settings.isStarted = true;
 
     startPage.classList.add('hidden');
-    gamePageNameInfo.textContent = settings.username;
+    nameInfo.textContent = settings.username;
 
     knight = new Knight(gamePage);
     knight.draw();
@@ -92,6 +115,10 @@ function initGame() {
 			settings.startTime += (new Date().getTime() - settings.pauseTime);
 			settings.pauseTime = '';
     }
+
+    document.addEventListener('keydown', onGameKeyDown);
+    document.addEventListener('keyup', onGameKeyUp);
+    document.addEventListener('keydown', onEscKeyDown);
 
     requestAnimationFrame(playGame);
   }  
@@ -114,10 +141,32 @@ function playGame() {
       }
     }
 
+    if (settings.pauseTime) {
+      settings.startTime += (new Date().getTime() - settings.pauseTime);
+      settings.pauseTime = '';
+    }
+
+    drawCurrentScore();
+
     knight.go();
 
     requestAnimationFrame(playGame);
   }
+}
+
+function drawCurrentScore() {
+	let timeStr = '';
+
+	const currentTime = Math.floor((new Date().getTime() - settings.startTime) / 1000);
+	const currentTimeInMin = Math.floor(currentTime / 60);
+	const currentTimeInSec = currentTime < 60 ? currentTime : currentTime - (60 * currentTimeInMin);
+
+	settings.score = currentTime;
+
+	timeStr += currentTimeInMin <= 9 ? '0' + currentTimeInMin + ':' : currentTimeInMin + ':';
+	timeStr += currentTimeInSec <= 9 ? '0' + currentTimeInSec : currentTimeInSec;
+
+	timeElement.textContent = timeStr;
 }
 
 function moveBackground(direction) {
@@ -141,8 +190,9 @@ class Knight {
     }
     this._helthLevel = 100;
     this._magicLevel = 100;
-    this._x = 50;
+    this._x = 10;
     this._speed = 1.5;
+    this._width = 72;
     this._container = container;
   }
 
@@ -158,11 +208,21 @@ class Knight {
     if (this.directions.back) {
       this._x -= this._speed;
       this._element.style.backgroundImage = 'url(assets/img/run.gif)';
+      this._element.style.transform = 'scale(-1, 1)';
     }
+
     if (this.directions.forward) {
       this._x += this._speed;
       this._element.style.backgroundImage = 'url(assets/img/run.gif)';
+      this._element.style.transform = 'none';
     }
+
+    if (this._x < 0) {
+      this._x = 0;
+    } else if (this._x > this._container.clientWidth - this._width) {
+      this._x = this._container.clientWidth - this._width;
+    }
+
     this._element.style.left = this._x + 'px';
   }
 

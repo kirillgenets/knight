@@ -169,8 +169,26 @@ button {
     height: 85px;
     position: absolute;
     bottom: 100px;
-    left: 50px;
+    left: 10px;
     background-image: url(../img/idle.gif);
     background-size: 100%;
     background-repeat: no-repeat;
+}
+.pause {
+	width: 300px;
+	height: 60px;
+
+	position: absolute;
+	left: 50%;
+	top: 480px;
+	z-index: 5;
+
+	background-color: #fff;
+
+	transform: translateX(-50%);
+}
+.pause-text {
+	font-size: 18px;
+	text-align: center;
+	text-transform: uppercase;
 }
