@@ -1,3 +1,6 @@
+const KNIGHT_WIDTH = 72;
+const BACKGROUND_SIZE = 9558;
+
 const startPage = document.querySelector('.screen-start');
 const startForm = startPage.querySelector('form');
 const nameField = startForm.querySelector('.start-name');
@@ -11,7 +14,9 @@ const settings = {
   username: 'user',
   isStarted: false,
   startTime: '',
-  pauseTime: ''
+  pauseTime: '',
+  backgroundPosition: BACKGROUND_SIZE,
+  speed: 1.5,
 }
 
 let knight = ''; // в эту переменную запишется объект рыцаря
@@ -94,10 +99,35 @@ function initGame() {
 
 function playGame() {
   if (settings.isStarted) {
+    if (knight.position.left + KNIGHT_WIDTH / 2 >= document.documentElement.clientWidth / 2) {
+      knight.speed = settings.speed;
+      if (knight.directions.forward) {
+        moveBackground('forward');
+        knight.speed = 0;
+      } else if (knight.directions.back) {
+        moveBackground('back');
+        knight.speed = 0;
+      }
+
+      if (settings.backgroundPosition == 0 || settings.backgroundPosition == BACKGROUND_SIZE) {
+        knight.speed = settings.speed;
+      }
+    }
+
     knight.go();
 
     requestAnimationFrame(playGame);
   }
+}
+
+function moveBackground(direction) {
+  if (direction === 'forward' && settings.backgroundPosition !== 0) {
+    settings.backgroundPosition -= settings.speed;
+  } else if (direction === 'back' && settings.backgroundPosition !== 0) {
+    settings.backgroundPosition += settings.speed;
+  } 
+
+  gamePage.style.backgroundPosition = settings.backgroundPosition + 'px' + ' 0';
 }
 
 // классы
@@ -121,25 +151,35 @@ class Knight {
 		knightImage.classList.add(this._className);
 		this._container.appendChild(knightImage);
 
-		this.element = knightImage;
+		this._element = knightImage;
   }
 
   go() {
     if (this.directions.back) {
       this._x -= this._speed;
-      this.element.style.backgroundImage = 'url(assets/img/run.gif)';
+      this._element.style.backgroundImage = 'url(assets/img/run.gif)';
     }
     if (this.directions.forward) {
       this._x += this._speed;
-      this.element.style.backgroundImage = 'url(assets/img/run.gif)';
+      this._element.style.backgroundImage = 'url(assets/img/run.gif)';
     }
-    this.element.style.left = this._x + 'px';
+    this._element.style.left = this._x + 'px';
   }
 
   stop() {
     this.directions.back = false;
     this.directions.forward = false;
 
-    this.element.style.backgroundImage = 'url(assets/img/idle.gif)';
+    this._element.style.backgroundImage = 'url(assets/img/idle.gif)';
+  }
+
+  get position() {
+    return this._element.getBoundingClientRect();
+  }
+
+  set speed(speed) {
+    if (speed >= 0) {
+      this._speed = speed;
+    }    
   }
 }

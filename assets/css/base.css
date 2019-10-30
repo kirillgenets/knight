@@ -53,6 +53,7 @@ input[type="submit"]:disabled {
     width: 100vw;
     height: 100vh;
     background: url(../img/bg-game.png);
+    background-position: 9558px 0;
     background-size: cover;
 }
 .panel {
