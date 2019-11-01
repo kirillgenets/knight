@@ -34,7 +34,7 @@ const monstersInfo = [
     height: 43,
     damage: 2,
     helthLevel: 15,
-    speed: 0.3
+    speed: 0.7
   },
   {
     className: 'monster-elf',
@@ -169,7 +169,9 @@ function playGame() {
         
         monsters.forEach((monster) => {
           if (monster.x <= gamePage.clientWidth / 2) {
-            monster.speed = 0;
+            monster.changeSpeed(knight.speed);
+          } else {
+            monster.changeSpeed(- knight.speed);
           }
         });
 
@@ -177,9 +179,17 @@ function playGame() {
       } else if (knight.directions.back) {
         moveBackground('back');
         knight.speed = 0;
+
+        monsters.forEach((monster) => {
+          if (monster.x <= gamePage.clientWidth / 2) {
+            monster.changeSpeed(- knight.speed);
+          } else {
+            monster.changeSpeed(knight.speed);
+          }
+        });
       } else {
         monsters.forEach((monster) => {
-          monster.setDefaultSpeed();
+          monster.changeSpeed(0);
         });
       }
 
@@ -370,13 +380,13 @@ class Monster {
     if (this.directions.forward) {
       this.x -= this.speed;
       this.element.style.left = this.x + 'px';
-      this.element.style.transform = 'none';
+      this.changeDirection();
     }    
 
     if (this.directions.back) {
       this.x += this.speed;
       this.element.style.left = this.x + 'px';
-      this.element.style.transform = 'scale(-1, 1)';
+      this.changeDirection();
     }
 
     if (this.x < 0 - this._width) {
@@ -384,7 +394,11 @@ class Monster {
     }
   }
 
-  setDefaultSpeed() {
-    this.speed = this._speed;
+  changeSpeed(coefficent) {
+    this.speed = this._speed - coefficent;
+  }
+
+  changeDirection() {
+    this.element.style.transform = this.directions.forward ? 'none' : 'scale(-1, 1)';
   }
 }
