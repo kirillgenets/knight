@@ -5,6 +5,7 @@ const MIN_MONSTERS_START_POS = 150;
 const GAME_WIDTH = document.documentElement.clientWidth;
 const MONSTERS_COUNT = 2;
 const DENSITY = MONSTERS_INTERVAL * MONSTERS_COUNT;
+const MONSTER_AND_KNIGHT_GAP = 10;
 
 const startPage = document.querySelector('.screen-start');
 const startForm = startPage.querySelector('form');
@@ -32,21 +33,24 @@ const monstersInfo = [
     width: 64,
     height: 43,
     damage: 2,
-    helthLevel: 15
+    helthLevel: 15,
+    speed: 0.3
   },
   {
     className: 'monster-elf',
     width: 59,
     height: 72,
     damage: 5,
-    helthLevel: 30
+    helthLevel: 30,
+    speed: 0.5
   },
   {
     className: 'monster-grinch',
     width: 68,
     height: 88,
     damage: 10,
-    helthLevel: 60
+    helthLevel: 60,
+    speed: 0.2
   },
 ];
 
@@ -162,14 +166,29 @@ function playGame() {
       knight.speed = settings.speed;
       if (knight.directions.forward) {
         moveBackground('forward');
-        knight.speed = 0;
+        
+        monsters.forEach((monster) => {
+          if (monster.x <= gamePage.clientWidth / 2) {
+            monster.speed = 0;
+          }
+        });
+
+        knight.speed = 0;        
       } else if (knight.directions.back) {
         moveBackground('back');
         knight.speed = 0;
+      } else {
+        monsters.forEach((monster) => {
+          monster.setDefaultSpeed();
+        });
       }
 
       if (settings.backgroundPosition == 0 || settings.backgroundPosition == BACKGROUND_SIZE) {
         knight.speed = settings.speed;
+        
+        monsters.forEach((monster) => {
+          monster.setDefaultSpeed();
+        });
       }
     }
 
@@ -200,7 +219,8 @@ function drawMonsters(count, startPos) {
       density: DENSITY,
       container: gamePage,
       numberOfMonster: i,
-      startPos: startPos
+      startPos: startPos,
+      speed: monstersInfo[monsterTypeNumber].speed
     });
 
     monster.draw();
@@ -210,10 +230,21 @@ function drawMonsters(count, startPos) {
 
 function moveMonsters() {
   monsters.forEach((monster) => {
+    if (monster.x < knight.x) {
+      monster.directions.back = true;
+      monster.directions.forward = false;
+    } else if (monster.x === knight.x) {
+      monster.directions.back = false;
+      monster.directions.forward = false;
+    } else {
+      monster.directions.back = false;
+      monster.directions.forward = true;
+    }
+
     monster.go();
   });
 
-  if (monsters[monsters.length - 2].x < gamePage.clientWidth / 2) {
+  if (monsters[monsters.length - 2].x <= gamePage.clientWidth / 2 && monsters.length < 10) {
     drawMonsters(1, (gamePage.clientWidth - monsters[monsters.length - 2].width * 2));
   }
 }
@@ -254,12 +285,12 @@ class Knight {
     this.directions = {
       back: false,
       forward: false
-    }
+    };
     this.speed = 1.5;
     this._className = 'knight';   
     this._helthLevel = 100;
     this._magicLevel = 100;
-    this._x = 10;
+    this.x = 10;
     this._width = 72;
     this._container = container;
   }
@@ -274,24 +305,24 @@ class Knight {
 
   go() {
     if (this.directions.back) {
-      this._x -= this.speed;
+      this.x -= this.speed;
       this.element.style.backgroundImage = 'url(assets/img/run.gif)';
       this.element.style.transform = 'scale(-1, 1)';
     }
 
     if (this.directions.forward) {
-      this._x += this.speed;
+      this.x += this.speed;
       this.element.style.backgroundImage = 'url(assets/img/run.gif)';
       this.element.style.transform = 'none';
     }
 
-    if (this._x < 0) {
-      this._x = 0;
+    if (this.x < 0) {
+      this.x = 0;
     } else if (this._x > this._container.clientWidth - this._width) {
-      this._x = this._container.clientWidth - this._width;
+      this.x = this._container.clientWidth - this._width;
     }
 
-    this.element.style.left = this._x + 'px';
+    this.element.style.left = this.x + 'px';
   }
 
   stop() {
@@ -310,8 +341,13 @@ class Monster {
   constructor(props) {
     this.damage = props.damage;
     this.width = props.width;
+    this.directions = {
+      back: false,
+      forward: true
+    };
+    this.speed = props.speed;
+    this._speed = props.speed;
     this._helthLevel = props.healthLevel;    
-    this._speed = 0.5;
     this._density = props.density;
     this._number = props.numberOfMonster;
     this._className = props.className
@@ -331,11 +367,24 @@ class Monster {
   }
   
   go() {
-    this.x -= this._speed;
-    this.element.style.left = this.x + 'px';
+    if (this.directions.forward) {
+      this.x -= this.speed;
+      this.element.style.left = this.x + 'px';
+      this.element.style.transform = 'none';
+    }    
+
+    if (this.directions.back) {
+      this.x += this.speed;
+      this.element.style.left = this.x + 'px';
+      this.element.style.transform = 'scale(-1, 1)';
+    }
 
     if (this.x < 0 - this._width) {
       this._container.removeChild(this.element);
     }
+  }
+
+  setDefaultSpeed() {
+    this.speed = this._speed;
   }
 }
