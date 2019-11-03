@@ -33,7 +33,7 @@ const monstersInfo = [
     width: 64,
     height: 43,
     damage: 2,
-    helthLevel: 15,
+    healthLevel: 15,
     speed: 0.7
   },
   {
@@ -41,7 +41,7 @@ const monstersInfo = [
     width: 59,
     height: 72,
     damage: 5,
-    helthLevel: 30,
+    healthLevel: 30,
     speed: 0.5
   },
   {
@@ -49,7 +49,7 @@ const monstersInfo = [
     width: 68,
     height: 88,
     damage: 10,
-    helthLevel: 60,
+    healthLevel: 60,
     speed: 0.2
   },
 ];
@@ -178,15 +178,16 @@ function playGame() {
         knight.speed = 0;        
       } else if (knight.directions.back) {
         moveBackground('back');
-        knight.speed = 0;
-
+        
         monsters.forEach((monster) => {
-          if (monster.x <= gamePage.clientWidth / 2) {
-            monster.changeSpeed(- knight.speed);
-          } else {
+          if (monster.x >= gamePage.clientWidth / 2) {
             monster.changeSpeed(knight.speed);
+          } else {
+            monster.changeSpeed(- knight.speed);
           }
         });
+
+        knight.speed = 0;
       } else {
         monsters.forEach((monster) => {
           monster.changeSpeed(0);
@@ -197,7 +198,7 @@ function playGame() {
         knight.speed = settings.speed;
         
         monsters.forEach((monster) => {
-          monster.setDefaultSpeed();
+          monster.changeSpeed(0);
         });
       }
     }
@@ -240,16 +241,15 @@ function drawMonsters(count, startPos) {
 
 function moveMonsters() {
   monsters.forEach((monster) => {
-    if (monster.x < knight.x) {
+    if (monster.x <= knight.x) {
       monster.directions.back = true;
-      monster.directions.forward = false;
-    } else if (monster.x === knight.x) {
-      monster.directions.back = false;
       monster.directions.forward = false;
     } else {
       monster.directions.back = false;
       monster.directions.forward = true;
     }
+
+    monster.isConflict(knight.position, knight.decreaseHealthLevel);
 
     monster.go();
   });
@@ -268,8 +268,8 @@ function drawCurrentScore() {
 
 	settings.score = currentTime;
 
-	timeStr += currentTimeInMin <= 9 ? '0' + currentTimeInMin + ':' : currentTimeInMin + ':';
-	timeStr += currentTimeInSec <= 9 ? '0' + currentTimeInSec : currentTimeInSec;
+	timeStr += currentTimeInMin <= 9 ? `0${currentTimeInMin}:` : `${currentTimeInMin}:`;
+	timeStr += currentTimeInSec <= 9 ? `0${currentTimeInSec}` : currentTimeInSec;
 
 	timeElement.textContent = timeStr;
 }
@@ -281,7 +281,7 @@ function moveBackground(direction) {
     settings.backgroundPosition += settings.speed;
   } 
 
-  gamePage.style.backgroundPosition = settings.backgroundPosition + 'px' + ' 0';
+  gamePage.style.backgroundPosition = `${settings.backgroundPosition}px 0`;
 }
 
 function getQuantityOfMonsters(height) {
@@ -298,11 +298,12 @@ class Knight {
     };
     this.speed = 1.5;
     this._className = 'knight';   
-    this._helthLevel = 100;
+    this._healthLevel = 100;
     this._magicLevel = 100;
     this.x = 10;
     this._width = 72;
     this._container = container;
+    this.decreaseHealthLevel = this.decreaseHealthLevel.bind(this);
   }
 
   draw() {
@@ -332,7 +333,11 @@ class Knight {
       this.x = this._container.clientWidth - this._width;
     }
 
-    this.element.style.left = this.x + 'px';
+    if (!this._healthLevel) {
+      console.log('dead');
+    }
+
+    this.element.style.left = `${this.x}px`;
   }
 
   stop() {
@@ -340,6 +345,11 @@ class Knight {
     this.directions.forward = false;
 
     this.element.style.backgroundImage = 'url(assets/img/idle.gif)';
+  }
+
+  decreaseHealthLevel(damage) {
+    console.log(damage)
+    this._healthLevel -= damage;
   }
 
   get position() {
@@ -356,8 +366,9 @@ class Monster {
       forward: true
     };
     this.speed = props.speed;
+    this._damageInterval = '';
     this._speed = props.speed;
-    this._helthLevel = props.healthLevel;    
+    this._healthLevel = props.healthLevel;    
     this._density = props.density;
     this._number = props.numberOfMonster;
     this._className = props.className
@@ -370,7 +381,7 @@ class Monster {
 
     monsterElement.classList.add(this._className);
     this.x = this._startPos ? this._startPos : this._container.clientWidth / 2 + this._density * this._number;
-    monsterElement.style.left = this.x + 'px';
+    monsterElement.style.left = `${this.x}px`;
     
     this._container.appendChild(monsterElement);
     this.element = monsterElement;
@@ -379,13 +390,13 @@ class Monster {
   go() {
     if (this.directions.forward) {
       this.x -= this.speed;
-      this.element.style.left = this.x + 'px';
+      this.element.style.left = `${this.x}px`;
       this.changeDirection();
     }    
 
     if (this.directions.back) {
       this.x += this.speed;
-      this.element.style.left = this.x + 'px';
+      this.element.style.left = `${this.x}px`;
       this.changeDirection();
     }
 
@@ -400,5 +411,17 @@ class Monster {
 
   changeDirection() {
     this.element.style.transform = this.directions.forward ? 'none' : 'scale(-1, 1)';
+  }
+
+  isConflict(knightCoords, callback) {
+    const monsterCoords = this.element.getBoundingClientRect();
+
+    if (knightCoords.left <= monsterCoords.right && knightCoords.right >= monsterCoords.left) {
+      if (this._damageInterval) {
+        clearInterval(this._damageInterval);
+      }
+
+      this._damageInterval = setInterval(callback, 1000, this.damage);
+    }
   }
 }

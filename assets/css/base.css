@@ -52,6 +52,7 @@ input[type="submit"]:disabled {
     background: url(../img/bg-game.png);
     background-position: 9558px 0;
     background-size: cover;
+    overflow: hidden;
 }
 .panel {
     width: 100%;
