@@ -6,6 +6,7 @@ const GAME_WIDTH = document.documentElement.clientWidth;
 const MONSTERS_COUNT = 2;
 const DENSITY = MONSTERS_INTERVAL * MONSTERS_COUNT;
 const MONSTER_AND_KNIGHT_GAP = 10;
+const SHOWN_RESULTS_COUNT = 10;
 
 const startPage = document.querySelector('.screen-start');
 const startForm = startPage.querySelector('form');
@@ -17,6 +18,7 @@ const nameInfo = gamePage.querySelector('.user-info');
 const pauseModal = gamePage.querySelector('.pause');
 const timeElement = gamePage.querySelector('.timer-value');
 const rankingPage = document.querySelector('.screen-ranking');
+const rankingTable = rankingPage.querySelector('.ranking-table');
 
 const settings = {
   username: 'user',
@@ -24,7 +26,9 @@ const settings = {
   startTime: '',
   pauseTime: '',
   backgroundPosition: BACKGROUND_SIZE,
-  speed: 1.5
+  speed: 1.5,
+  time: '',
+  score: 0
 }
 
 const monstersInfo = [
@@ -53,6 +57,69 @@ const monstersInfo = [
     speed: 0.2
   },
 ];
+
+let usersResults = JSON.stringify([
+  {
+		name: 'Влад',
+    score: 18,
+    time: '12:43'
+	},
+	{
+		name: 'Иван',
+    score: 5,
+    time: '12:43'
+	},
+	{
+		name: 'Дима',
+    score: 73,
+    time: '12:43'
+	},
+	{
+		name: 'Игорь',
+    score: 2,
+    time: '12:43'
+	},
+	{
+		name: 'Кирилл',
+    score: 19,
+    time: '12:43'
+	},
+	{
+		name: 'Лёша',
+    score: 5,
+    time: '12:43'
+	},
+	{
+		name: 'Вася',
+    score: 7,
+    time: '12:43'
+	},
+	{
+		name: 'Лёня',
+    score: 29,
+    time: '12:43'
+	},
+	{
+		name: 'Руслан',
+    score: 11,
+    time: '12:43'
+	},
+	{
+		name: 'Аслан',
+    score: 13,
+    time: '12:43'
+	},
+	{
+		name: 'Виктор',
+    score: 24,
+    time: '12:43'
+	},
+	{
+		name: 'Катя',
+    score: 16,
+    time: '12:43'
+	},
+]);
 
 let knight = ''; // в эту переменную запишется объект рыцаря
 let monsters = []; // в эту переменную запишутся все монстры
@@ -208,6 +275,10 @@ function playGame() {
       settings.pauseTime = '';
     }
 
+    if (knight.healthLevel <= 0) {
+      overGame();
+    }
+
     drawCurrentScore();
 
     knight.go();
@@ -216,6 +287,19 @@ function playGame() {
 
     requestAnimationFrame(playGame);
   }
+}
+
+function overGame() {
+  settings.isStarted = false;
+	settings.startTime = '';
+	settings.pauseTime = '';
+
+	saveResult();
+	showResults();
+
+	document.removeEventListener('keydown', onGameKeyDown);
+	document.removeEventListener('keydown', onEscKeyDown);
+	document.removeEventListener('keyup', onGameKeyUp);
 }
 
 function drawMonsters(count, startPos) {
@@ -241,17 +325,20 @@ function drawMonsters(count, startPos) {
 
 function moveMonsters() {
   monsters.forEach((monster) => {
-    if (monster.x <= knight.x) {
+    if (monster.x < knight.position.left) {
       monster.directions.back = true;
       monster.directions.forward = false;
-    } else {
+      monster.go();
+    } else if (monster.x === knight.position.left && monster.x === knight.position.right) {
+      monster.directions.back = false;
+      monster.directions.forward = false;
+    } else if (monster.x > knight.position.right) {
       monster.directions.back = false;
       monster.directions.forward = true;
+      monster.go();
     }
 
     monster.isConflict(knight.position, knight.decreaseHealthLevel);
-
-    monster.go();
   });
 
   if (monsters[monsters.length - 2].x <= gamePage.clientWidth / 2 && monsters.length < 10) {
@@ -266,12 +353,11 @@ function drawCurrentScore() {
 	const currentTimeInMin = Math.floor(currentTime / 60);
 	const currentTimeInSec = currentTime < 60 ? currentTime : currentTime - (60 * currentTimeInMin);
 
-	settings.score = currentTime;
-
 	timeStr += currentTimeInMin <= 9 ? `0${currentTimeInMin}:` : `${currentTimeInMin}:`;
 	timeStr += currentTimeInSec <= 9 ? `0${currentTimeInSec}` : currentTimeInSec;
 
-	timeElement.textContent = timeStr;
+  timeElement.textContent = timeStr;
+  settings.time = timeStr;
 }
 
 function moveBackground(direction) {
@@ -288,6 +374,90 @@ function getQuantityOfMonsters(height) {
   return GAME_WIDTH / 2 / height - 1;
 }
 
+function saveResult() {
+	settings.result = {
+		name: settings.username,
+    score: settings.score,
+    time: settings.time
+	};
+
+	usersResults = JSON.parse(usersResults);
+
+	const lastUserResult = usersResults.filter(function (result) {
+		return result.name === settings.name
+	});
+
+	if (lastUserResult.length > 0) {
+		usersResults.splice(usersResults.indexOf(lastUserResult[0]), 1);
+	} 
+
+	usersResults.push(settings.result);
+}
+
+function showResults() {
+	resetRankingTable();
+
+	const sortedResults = usersResults.sort(function (a, b) {
+		return b.score - a.score
+	});
+
+	sortedResults.splice(SHOWN_RESULTS_COUNT, sortedResults.length - SHOWN_RESULTS_COUNT);
+	const isUserResultInTop = sortedResults.includes(settings.result);
+
+	if (!isUserResultInTop) {
+		sortedResults[sortedResults.length - 1] = settings.result;
+	} 
+	sortedResults.forEach(function (result, index) {
+		const row = document.createElement('tr');
+
+		const hashColumn = document.createElement('td');
+    hashColumn.textContent = index + 1;
+    row.appendChild(hashColumn);
+
+    const nameColumn = document.createElement('td');
+    nameColumn.textContent = result.name;
+    row.appendChild(nameColumn);
+
+    const scoreColumn = document.createElement('td');
+    scoreColumn.textContent = result.score;
+    row.appendChild(scoreColumn);
+    
+    const timeColumn = document.createElement('td');
+    timeColumn.textContent = result.time;
+    row.appendChild(timeColumn);
+
+		rankingTable.appendChild(row);
+	});
+
+	rankingPage.classList.remove('hidden');		
+
+	usersResults = JSON.stringify(usersResults);
+}
+
+function resetRankingTable() {
+	rankingTable.innerHTML = '';
+
+  const row = document.createElement('tr');
+  
+  const hashColumn = document.createElement('th');
+	hashColumn.textContent = '#';
+	row.appendChild(hashColumn);
+
+	const nameColumn = document.createElement('th');
+	nameColumn.textContent = 'Username';
+	row.appendChild(nameColumn);
+
+	const scoreColumn = document.createElement('th');
+	scoreColumn.textContent = 'Killed monsters';
+  row.appendChild(scoreColumn);
+  
+  const timeColumn = document.createElement('th');
+	timeColumn.textContent = 'Time';
+	row.appendChild(timeColumn);
+
+	rankingTable.appendChild(row);
+}
+
 // классы
 
 class Knight {
@@ -298,7 +468,7 @@ class Knight {
     };
     this.speed = 1.5;
     this._className = 'knight';   
-    this._healthLevel = 100;
+    this.healthLevel = 100;
     this._magicLevel = 100;
     this.x = 10;
     this._width = 72;
@@ -333,7 +503,7 @@ class Knight {
       this.x = this._container.clientWidth - this._width;
     }
 
-    if (!this._healthLevel) {
+    if (!this.healthLevel) {
       console.log('dead');
     }
 
@@ -348,12 +518,28 @@ class Knight {
   }
 
   decreaseHealthLevel(damage) {
-    console.log(damage)
-    this._healthLevel -= damage;
+    this.healthLevel -= damage;
+
+    const scoreContainer = this._container.querySelector('.score-value');
+
+    scoreContainer.style.background = `linear-gradient(90deg, rgba(159,0,10,1) ${this.healthLevel}%, rgba(255,255,255,1) ${this.healthLevel}%)`;
+    scoreContainer.querySelector('span').textContent = this.healthLevel;
+  }
+
+  fight() {
+
   }
 
   get position() {
     return this.element.getBoundingClientRect();
+  }
+}
+
+class Weapon {
+  constructor(props) {
+    this.damage = props.damage;
+    this._rechargeTime = props.rechargeTime;
+    this._magicLevelConsumption = props.magicLevelConsumption;
   }
 }
 
@@ -366,7 +552,7 @@ class Monster {
       forward: true
     };
     this.speed = props.speed;
-    this._damageInterval = '';
+    this._damageInterval;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
     this._density = props.density;
@@ -417,11 +603,9 @@ class Monster {
     const monsterCoords = this.element.getBoundingClientRect();
 
     if (knightCoords.left <= monsterCoords.right && knightCoords.right >= monsterCoords.left) {
-      if (this._damageInterval) {
-        clearInterval(this._damageInterval);
-      }
-
       this._damageInterval = setInterval(callback, 1000, this.damage);
+    } else {
+      clearInterval(this._damageInterval);
     }
   }
 }
