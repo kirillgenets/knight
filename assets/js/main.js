@@ -3,7 +3,7 @@ const BACKGROUND_SIZE = 9558;
 const MONSTERS_INTERVAL = 150;
 const MIN_MONSTERS_START_POS = 150;
 const GAME_WIDTH = document.documentElement.clientWidth;
-const MONSTERS_COUNT = 2;
+const MONSTERS_COUNT = GAME_WIDTH >= 1024 ? 2 : 1;
 const DENSITY = MONSTERS_INTERVAL * MONSTERS_COUNT;
 const MONSTER_AND_KNIGHT_GAP = 10;
 const SHOWN_RESULTS_COUNT = 10;
@@ -34,8 +34,8 @@ const settings = {
   score: 0
 }
 
-const monstersInfo = [
-  {
+const Monster = {
+  dog: {
     className: 'monster-dog',
     width: 64,
     height: 43,
@@ -43,7 +43,7 @@ const monstersInfo = [
     healthLevel: 15,
     speed: 0.7
   },
-  {
+  elf: {
     className: 'monster-elf',
     width: 59,
     height: 72,
@@ -51,7 +51,7 @@ const monstersInfo = [
     healthLevel: 30,
     speed: 0.5
   },
-  {
+  grinch: {
     className: 'monster-grinch',
     width: 68,
     height: 88,
@@ -59,7 +59,7 @@ const monstersInfo = [
     healthLevel: 60,
     speed: 0.2
   },
-];
+};
 
 let usersResults = JSON.stringify([
   {
@@ -314,24 +314,26 @@ function overGame() {
 }
 
 function drawMonsters(count, startPos) {
+  const monsterTypesArr = generateMonsterTypesArray();
   for (let i = 0; i < count; i++) {
-    const monsterTypeNumber = Math.floor(Math.random() * monstersInfo.length);
-    const monster = new Monster({
-      className: monstersInfo[monsterTypeNumber].className,
-      width: monstersInfo[monsterTypeNumber].width,
-      height: monstersInfo[monsterTypeNumber].height,
-      healthLevel: monstersInfo[monsterTypeNumber].healthLevel,
-      damage: monstersInfo[monsterTypeNumber].damage,
-      density: DENSITY,
-      container: gamePage,
-      numberOfMonster: i,
-      startPos: startPos,
-      speed: monstersInfo[monsterTypeNumber].speed
-    });
+    const monsterType = monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
+    const monster = new Enemy(Monster[monsterType]);
 
-    monster.draw();
+    console.log(count);
+
+    monster.draw(i, gamePage, DENSITY, startPos);
     monsters.push(monster);
   }
+}
+
+function generateMonsterTypesArray() {
+  const result = [];
+
+  for (key in Monster) {
+    result.push(key);
+  }
+  
+  return result;
 }
 
 function moveMonsters() {
@@ -349,10 +351,10 @@ function moveMonsters() {
       monster.go();
     }
 
-    monster.isConflict(knight.position, knight.decreaseHealthLevel);
+    // monster.isConflict(knight.position, knight.decreaseHealthLevel);
   });
 
-  if (monsters[monsters.length - 2].x <= gamePage.clientWidth / 2 && monsters.length < 10) {
+  if (monsters[monsters.length - MONSTERS_COUNT].x <= gamePage.clientWidth / 2 && monsters.length < 10) {
     drawMonsters(1, (gamePage.clientWidth - monsters[monsters.length - 2].width * 2));
   }
 }
@@ -469,7 +471,8 @@ function showResults() {
 }
 
 function resetRankingTable() {
-	rankingTable.innerHTML = '';
+  rankingTable.innerHTML = '';
+  rankingTable.insertAdjacentHTML
 
   const row = document.createElement('tr');
   
@@ -501,13 +504,13 @@ class Knight {
       forward: false
     };
     this.speed = 1.5;
-    this._className = 'knight';   
     this.healthLevel = 100;
-    this._magicLevel = 100;
     this.x = 10;
+    // this.decreaseHealthLevel = this.decreaseHealthLevel.bind(this);
+    this._className = 'knight'; 
+    this._magicLevel = 100;
     this._width = 72;
     this._container = container;
-    this.decreaseHealthLevel = this.decreaseHealthLevel.bind(this);
   }
 
   draw() {
@@ -551,22 +554,20 @@ class Knight {
     this.element.style.backgroundImage = 'url(assets/img/idle.gif)';
   }
 
-  decreaseHealthLevel(damage, interval) {
-    if (this.healthLevel) {
-      this.healthLevel -= damage;
+  // decreaseHealthLevel(damage, interval) {
+  //   if (this.healthLevel) {
+  //     this.healthLevel -= damage;
 
-      console.log('Ауч')
+  //     console.log('Ауч')
 
-      const healthContainer = this._container.querySelector('.panel-xp .score-value');
+  //     const healthContainer = this._container.querySelector('.panel-xp .score-value');
 
-      healthContainer.style.background = `linear-gradient(90deg, rgba(159,0,10,1) ${this.healthLevel}%, rgba(255,255,255,1) ${this.healthLevel}%)`;
-      healthContainer.querySelector('span').textContent = this.healthLevel;
-    }
-  }
-
-  fight() {
-
-  }
+  //     healthContainer.style.background = `linear-gradient(90deg, rgba(159,0,10,1) ${this.healthLevel}%, rgba(255,255,255,1) ${this.healthLevel}%)`;
+  //     healthContainer.querySelector('span').textContent = this.healthLevel;
+  //   } else {
+  //     clearInterval(interval);
+  //   }
+  // }
 
   get position() {
     return this.element.getBoundingClientRect();
@@ -581,7 +582,7 @@ class Weapon {
   }
 }
 
-class Monster {
+class Enemy {
   constructor(props) {
     this.damage = props.damage;
     this.width = props.width;
@@ -593,22 +594,18 @@ class Monster {
     this.damageInterval;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
-    this._density = props.density;
-    this._number = props.numberOfMonster;
-    this._className = props.className
-    this._container = props.container;
-    this._startPos = props.startPos;
+    this._className = props.className;
   }
 
-  draw() {
+  draw(number, container, density, startPos) {
 		const monsterElement = document.createElement('div');
 
     monsterElement.classList.add(this._className);
     monsterElement.classList.add('monster');
-    this.x = this._startPos ? this._startPos : this._container.clientWidth / 2 + this._density * this._number;
+    this.x = startPos ? startPos : container.clientWidth / 2 + density * number;
     monsterElement.style.left = `${this.x}px`;
     
-    this._container.appendChild(monsterElement);
+    container.appendChild(monsterElement);
     this.element = monsterElement;
   }
   
@@ -638,13 +635,17 @@ class Monster {
     this.element.style.transform = this.directions.forward ? 'none' : 'scale(-1, 1)';
   }
 
-  isConflict(knightCoords, callback) {
-    const monsterCoords = this.element.getBoundingClientRect();
+  // isConflict(knightCoords, callback) {
+  //   const monsterCoords = this.element.getBoundingClientRect();
 
-    if (knightCoords.left <= monsterCoords.right && knightCoords.right >= monsterCoords.left) {
-      this.damageInterval = setInterval(callback, 1000, this.damage, this.damageInterval);
-    } else {
-      clearInterval(this.damageInterval);
-    }
-  }
+  //   if (knightCoords.left <= monsterCoords.right && knightCoords.right >= monsterCoords.left) {
+  //     if (this.damageInterval) {
+  //       clearInterval(this.damageInterval);
+  //     }
+
+  //     this.damageInterval = setInterval(callback, 1000, this.damage, this.damageInterval);
+  //   } else {
+  //     clearInterval(this.damageInterval);
+  //   }
+  // }
 }
