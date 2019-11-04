@@ -16,9 +16,12 @@ const gamePage = document.querySelector('.screen-game');
 const scoreElement = gamePage.querySelector('.kills-value');
 const nameInfo = gamePage.querySelector('.user-info');
 const pauseModal = gamePage.querySelector('.pause');
+const healthContainer = gamePage.querySelector('.panel-xp .score-value');
+const healthContainerValue = healthContainer.querySelector('span');
 const timeElement = gamePage.querySelector('.timer-value');
 const rankingPage = document.querySelector('.screen-ranking');
 const rankingTable = rankingPage.querySelector('.ranking-table');
+const playAgainButton = rankingPage.querySelector('.play-again');
 
 const settings = {
   username: 'user',
@@ -128,8 +131,16 @@ rankingPage.classList.add('hidden');
 
 nameField.addEventListener('input', onNameFieldInput);
 startForm.addEventListener('submit', onStartFormSubmit);
+playAgainButton.addEventListener('click', onPlayAgainButtonClick);
 
 // функции-обработчики событий
+
+function onPlayAgainButtonClick() {
+  rankingPage.classList.add('hidden');
+  
+  resetGame();
+	initGame();
+}
 
 function onEscKeyDown(evt) {
   isEscEvent(evt, () => {
@@ -360,6 +371,29 @@ function drawCurrentScore() {
   settings.time = timeStr;
 }
 
+function resetGame() {
+  settings.score = 0;
+  settings.time = '';
+	timeElement.textContent = '00:00';
+
+	clearMonsters();
+
+	for (let dir in knight.directions) {
+		knight.directions[dir] = false;
+	}
+
+  knight.healthLevel = 100;
+  gamePage.removeChild(knight.element);
+
+  healthContainer.style.background = '#9f000a';
+  healthContainerValue.textContent = 100;
+}
+
+function clearMonsters() {
+  document.querySelectorAll('.monster').forEach((monster) => {gamePage.removeChild(monster)});
+  monsters.forEach((monster) => {clearInterval(monster.damageInterval)});
+}
+
 function moveBackground(direction) {
   if (direction === 'forward' && settings.backgroundPosition !== 0) {
     settings.backgroundPosition -= settings.speed;
@@ -517,13 +551,17 @@ class Knight {
     this.element.style.backgroundImage = 'url(assets/img/idle.gif)';
   }
 
-  decreaseHealthLevel(damage) {
-    this.healthLevel -= damage;
+  decreaseHealthLevel(damage, interval) {
+    if (this.healthLevel) {
+      this.healthLevel -= damage;
 
-    const scoreContainer = this._container.querySelector('.score-value');
+      console.log('Ауч')
 
-    scoreContainer.style.background = `linear-gradient(90deg, rgba(159,0,10,1) ${this.healthLevel}%, rgba(255,255,255,1) ${this.healthLevel}%)`;
-    scoreContainer.querySelector('span').textContent = this.healthLevel;
+      const healthContainer = this._container.querySelector('.panel-xp .score-value');
+
+      healthContainer.style.background = `linear-gradient(90deg, rgba(159,0,10,1) ${this.healthLevel}%, rgba(255,255,255,1) ${this.healthLevel}%)`;
+      healthContainer.querySelector('span').textContent = this.healthLevel;
+    }
   }
 
   fight() {
@@ -552,7 +590,7 @@ class Monster {
       forward: true
     };
     this.speed = props.speed;
-    this._damageInterval;
+    this.damageInterval;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
     this._density = props.density;
@@ -566,6 +604,7 @@ class Monster {
 		const monsterElement = document.createElement('div');
 
     monsterElement.classList.add(this._className);
+    monsterElement.classList.add('monster');
     this.x = this._startPos ? this._startPos : this._container.clientWidth / 2 + this._density * this._number;
     monsterElement.style.left = `${this.x}px`;
     
@@ -603,9 +642,9 @@ class Monster {
     const monsterCoords = this.element.getBoundingClientRect();
 
     if (knightCoords.left <= monsterCoords.right && knightCoords.right >= monsterCoords.left) {
-      this._damageInterval = setInterval(callback, 1000, this.damage);
+      this.damageInterval = setInterval(callback, 1000, this.damage, this.damageInterval);
     } else {
-      clearInterval(this._damageInterval);
+      clearInterval(this.damageInterval);
     }
   }
 }
