@@ -104,8 +104,6 @@ class Enemy {
   constructor(props) {
     this.damage = props.damage;
     this.back = false;
-    this.speed = props.speed;
-    this.damageInterval;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
     this._className = props.className;
@@ -120,14 +118,6 @@ class Enemy {
     monsterElement.style.left = `${this.x}px`;
     
     container.appendChild(monsterElement);
-  }
-  
-  go() {
-    if (this.directions.back) {
-      this.x += this.speed;
-    } else {
-      this.x -= this.speed;
-    }
   }
 }
   
