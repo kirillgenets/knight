@@ -56,7 +56,7 @@ nameField.addEventListener('input', onNameFieldInput);
 startForm.addEventListener('submit', onStartFormSubmit);
 
 function onNameFieldInput() {  
-  startButton.disabled = nameField.value !== '' ? false : true;
+  startButton.disabled = nameField.value === '' ? true : false;
 }
 
 function onStartFormSubmit(evt) {
