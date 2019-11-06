@@ -30,18 +30,24 @@ const settings = {
 const Monster = {
   dog: {
     className: 'monster-dog',
+    width: 64,
+    height: 43,
     damage: 2,
     healthLevel: 15,
     speed: 0.7
   },
   elf: {
     className: 'monster-elf',
+    width: 59,
+    height: 72,
     damage: 5,
     healthLevel: 30,
     speed: 0.5
   },
   grinch: {
     className: 'monster-grinch',
+    width: 68,
+    height: 88,
     damage: 10,
     healthLevel: 60,
     speed: 0.2
@@ -50,7 +56,7 @@ const Monster = {
 
 const monsterTypesArr = Object.keys(Monster);
 
-const monsters = [];
+const monstersData = [];
 
 rankingPage.classList.add('hidden');
 
@@ -80,11 +86,19 @@ function initGame() {
   }  
 }
 
-function createMonsters(count) {
+function createMonstersData(count) {
   for (let i = 0; i < count; i++) {
-    const monster = new Enemy(Monster[getRandomMonsterType()]);
-    monster.draw(gamePage, getMonsterStartPosition());
-    monsters.push(monster);
+    const monsterDefaultData = Monster[getRandomMonsterType()];
+    monstersData.push({
+      id: i,
+      className: monsterDefaultData.className,
+      damage: monsterDefaultData.damage,
+      healthLevel: monsterDefaultData.healthLevel,
+      speed: monsterDefaultData.speed,
+      width: monsterDefaultData.width,
+      height: monsterDefaultData.height,
+      position: getMonsterStartPosition()  
+    });
   }  
 }
 
@@ -112,7 +126,7 @@ class Enemy {
     monsterElement.classList.add(this._className);
     monsterElement.classList.add('monster');
 
-    this.x = startPos;
+    this.positon = startPos;
     monsterElement.style.left = `${this.x}px`;
     
     container.appendChild(monsterElement);
