@@ -1,4 +1,5 @@
 const BACKGROUND_SIZE = 9558;
+const START_MONSTERS_COUNT = 3;
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -47,17 +48,15 @@ const Monster = {
   }
 };
 
+const monsterTypesArr = Object.keys(Monster);
+
 rankingPage.classList.add('hidden');
 
 nameField.addEventListener('input', onNameFieldInput);
 startForm.addEventListener('submit', onStartFormSubmit);
 
-function onNameFieldInput() {
-  if (nameField.value !== '') {
-		startButton.removeAttribute('disabled');
-	} else {
-		startButton.setAttribute('disabled', true);
-	}
+function onNameFieldInput() {  
+  startButton.disabled = nameField.value !== '' ? false : true;
 }
 
 function onStartFormSubmit(evt) {
@@ -75,22 +74,18 @@ function initGame() {
     startPage.classList.add('hidden');
     nameInfo.textContent = settings.username;
 
-    drawMonster();
+    createMonsters(START_MONSTERS_COUNT);
   }  
 }
 
-function drawMonster() {
-  const monster = new Enemy(Monster[getRandomMonsterType()]);
-  monster.draw(gamePage, getMonsterStartPosition());
+function createMonsters(count) {
+  for (let i = 0; i < count; i++) {
+    const monster = new Enemy(Monster[getRandomMonsterType()]);
+    monster.draw(gamePage, getMonsterStartPosition());
+  }  
 }
 
-function getRandomMonsterType() {
-  const monsterTypesArr = [];
-
-  for (key in Monster) {
-    monsterTypesArr.push(key);
-  }
-  
+function getRandomMonsterType() {  
   return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
 }
 
