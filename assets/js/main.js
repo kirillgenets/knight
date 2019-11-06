@@ -50,6 +50,8 @@ const Monster = {
 
 const monsterTypesArr = Object.keys(Monster);
 
+const monsters = [];
+
 rankingPage.classList.add('hidden');
 
 nameField.addEventListener('input', onNameFieldInput);
@@ -82,6 +84,7 @@ function createMonsters(count) {
   for (let i = 0; i < count; i++) {
     const monster = new Enemy(Monster[getRandomMonsterType()]);
     monster.draw(gamePage, getMonsterStartPosition());
+    monsters.push(monster);
   }  
 }
 
