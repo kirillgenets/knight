@@ -1,5 +1,11 @@
 const BACKGROUND_SIZE = 9558;
 const START_MONSTERS_COUNT = 3;
+const KNIGHT_RUN_GIF_URL = 'url(assets/img/run.gif)';
+const KNIGHT_IDLE_GIF_URL = 'url(assets/img/idle.gif)';
+const KNIGHT_BLOCK_GIF_URL = 'url(assets/img/block.gif)';
+const DOG_RUN_GIF_URL = 'url(assets/img/dog-run.gif)';
+const ELF_RUN_GIF_URL = 'url(assets/img/elf-run.gif)';
+const GRINCH_RUN_GIF_URL = 'url(assets/img/grinch-run.gif)';
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -34,7 +40,8 @@ const Monster = {
     height: 43,
     damage: 2,
     healthLevel: 15,
-    speed: 0.7
+    speed: 0.7,
+    runGif: DOG_RUN_GIF_URL
   },
   elf: {
     className: 'monster-elf',
@@ -42,7 +49,8 @@ const Monster = {
     height: 72,
     damage: 5,
     healthLevel: 30,
-    speed: 0.5
+    speed: 0.5,
+    runGif: ELF_RUN_GIF_URL
   },
   grinch: {
     className: 'monster-grinch',
@@ -50,13 +58,29 @@ const Monster = {
     height: 88,
     damage: 10,
     healthLevel: 60,
-    speed: 0.2
+    speed: 0.2,
+    runGif: GRINCH_RUN_GIF_URL
   }
 };
+
+const knightDefaultData = {
+  className: 'knight',
+  width: 72,
+  height: 85,
+  speed: 1.5,
+  healthLevel: 100,
+  magicLevel: 100,
+  startPos: 10,
+  runGif: KNIGHT_RUN_GIF_URL,
+  idleGif: KNIGHT_IDLE_GIF_URL,
+  blockGif: KNIGHT_BLOCK_GIF_URL
+}
 
 const monsterTypesArr = Object.keys(Monster);
 
 const monstersData = [];
+let knightData = {};
+let knight;
 
 rankingPage.classList.add('hidden');
 
@@ -82,9 +106,38 @@ function initGame() {
     startPage.classList.add('hidden');
     nameInfo.textContent = settings.username;
 
+    createKnightData();
+    renderKnight();
+
     createMonstersData(START_MONSTERS_COUNT);
     renderMonsters();
   }  
+}
+
+// function playGame() {
+//   if (settings.isStarted) {
+//     moveMonsters();
+//   }
+// }
+
+function createKnightData() {
+  knightData = {
+    className: knightDefaultData.className,
+    healthLevel: knightDefaultData.healthLevel,
+    magicLevel: knightDefaultData.magicLevel,
+    speed: knightDefaultData.speed,
+    width: knightDefaultData.width,
+    height: knightDefaultData.height,
+    position: knightDefaultData.startPos,
+    runGif: knightDefaultData.runGif,
+    idleGif: knightDefaultData.idleGif,
+    blockGif: knightDefaultData.blockGif
+  }
+}
+
+function renderKnight() {
+  knight = new Knight(knightData);
+  knight.draw(gamePage);
 }
 
 function createMonstersData(count) {
@@ -98,6 +151,7 @@ function createMonstersData(count) {
       speed: monsterDefaultData.speed,
       width: monsterDefaultData.width,
       height: monsterDefaultData.height,
+      runGif: monsterDefaultData.runGif,
       position: getMonsterStartPosition()  
     });
   }  
@@ -110,6 +164,10 @@ function renderMonsters() {
   });
 }
 
+// function moveMonsters() {
+
+// }
+
 function getRandomMonsterType() {  
   return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
 }
@@ -119,6 +177,28 @@ function getMonsterStartPosition() {
 }
 
 // КЛАССЫ
+
+class Knight {
+  constructor(props) {
+    this.directions = {
+      back: false,
+      forward: false
+    };
+    this.speed = props.speed;
+    this.healthLevel = props.healthLevel;
+    this.magicLevel = props.magicLevel;
+    this.position = props.position;
+    this._className = props.className; 
+    this._width = props.width;
+    this._height = props.height;
+  }
+
+  draw(container) {
+    const knightImage = document.createElement('div');
+		knightImage.classList.add(this._className);
+		container.appendChild(knightImage);
+  }
+}
 
 class Enemy {
   constructor(props) {
@@ -143,7 +223,7 @@ class Enemy {
   }
 
   go() {
-    this.position += this._speed;
+    this.position -= this._speed;
   }
 }
   
