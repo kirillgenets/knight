@@ -82,7 +82,8 @@ function initGame() {
     startPage.classList.add('hidden');
     nameInfo.textContent = settings.username;
 
-    createMonsters(START_MONSTERS_COUNT);
+    createMonstersData(START_MONSTERS_COUNT);
+    renderMonsters();
   }  
 }
 
@@ -102,6 +103,13 @@ function createMonstersData(count) {
   }  
 }
 
+function renderMonsters() {
+  monstersData.forEach(monsterData => {
+    const monster = new Enemy(monsterData);
+    monster.draw(gamePage);
+  });
+}
+
 function getRandomMonsterType() {  
   return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
 }
@@ -116,20 +124,26 @@ class Enemy {
   constructor(props) {
     this.damage = props.damage;
     this.back = false;
+    this.position = props.position;
+    this._width = props.width;
+    this._height = props.height;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
     this._className = props.className;
   }
 
-  draw(container, startPos) {
+  draw(container) {
 		const monsterElement = document.createElement('div');
     monsterElement.classList.add(this._className);
     monsterElement.classList.add('monster');
 
-    this.positon = startPos;
-    monsterElement.style.left = `${this.x}px`;
+    monsterElement.style.left = `${this.position}px`;
     
     container.appendChild(monsterElement);
+  }
+
+  go() {
+    this.position += this._speed;
   }
 }
   
