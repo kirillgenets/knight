@@ -184,7 +184,7 @@ class Knight {
       back: false,
       forward: false
     };
-    this._element;
+    this._element = null;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;
     this._magicLevel = props.magicLevel;
@@ -214,7 +214,7 @@ class Knight {
 class Enemy {
   constructor(props) {
     this._damage = props.damage;
-    this._element;
+    this._element = null;
     this._back = false;
     this._position = props.position;
     this._width = props.width;
