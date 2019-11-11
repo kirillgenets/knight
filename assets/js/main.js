@@ -137,7 +137,7 @@ function createKnightData() {
 
 function renderKnight() {
   knight = new Knight(knightData);
-  knight.draw(gamePage);
+  knight.render(gamePage);
 }
 
 function createMonstersData(count) {
@@ -160,7 +160,7 @@ function createMonstersData(count) {
 function renderMonsters() {
   monstersData.forEach(monsterData => {
     const monster = new Enemy(monsterData);
-    monster.draw(gamePage);
+    monster.render(gamePage);
   });
 }
 
@@ -180,31 +180,41 @@ function getMonsterStartPosition() {
 
 class Knight {
   constructor(props) {
-    this.directions = {
+    this._directions = {
       back: false,
       forward: false
     };
-    this.speed = props.speed;
-    this.healthLevel = props.healthLevel;
-    this.magicLevel = props.magicLevel;
-    this.position = props.position;
+    this._speed = props.speed;
+    this._healthLevel = props.healthLevel;
+    this._magicLevel = props.magicLevel;
+    this._position = props.position;
     this._className = props.className; 
     this._width = props.width;
     this._height = props.height;
   }
 
-  draw(container) {
-    const knightImage = document.createElement('div');
-		knightImage.classList.add(this._className);
-		container.appendChild(knightImage);
+  render(container) {
+    const knightElement = document.createElement('div');
+    knightElement.classList.add(this._className);
+    
+    container.appendChild(knightElement);
+    this._element = knightElement;
+  }
+
+  unrender(container) {
+    container.removeChild(this._element);
+  }
+
+  get element() {
+    return this._element;
   }
 }
 
 class Enemy {
   constructor(props) {
-    this.damage = props.damage;
-    this.back = false;
-    this.position = props.position;
+    this._damage = props.damage;
+    this._back = false;
+    this._position = props.position;
     this._width = props.width;
     this._height = props.height;
     this._speed = props.speed;
@@ -212,18 +222,26 @@ class Enemy {
     this._className = props.className;
   }
 
-  draw(container) {
+  render(container) {
 		const monsterElement = document.createElement('div');
     monsterElement.classList.add(this._className);
     monsterElement.classList.add('monster');
-
-    monsterElement.style.left = `${this.position}px`;
+    monsterElement.style.left = `${this._position}px`;
     
     container.appendChild(monsterElement);
+    this._element = monsterElement;
+  }
+
+  unrender(container) {
+    container.removeChild(this._element);
   }
 
   go() {
-    this.position -= this._speed;
+    this._position -= this._speed;
+  }
+
+  get element() {
+    return this._element;
   }
 }
   
