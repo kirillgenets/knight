@@ -1,11 +1,16 @@
-const BACKGROUND_SIZE = 9558;
-const START_MONSTERS_COUNT = 3;
-const KNIGHT_RUN_GIF_URL = 'url(assets/img/run.gif)';
-const KNIGHT_IDLE_GIF_URL = 'url(assets/img/idle.gif)';
-const KNIGHT_BLOCK_GIF_URL = 'url(assets/img/block.gif)';
-const DOG_RUN_GIF_URL = 'url(assets/img/dog-run.gif)';
-const ELF_RUN_GIF_URL = 'url(assets/img/elf-run.gif)';
-const GRINCH_RUN_GIF_URL = 'url(assets/img/grinch-run.gif)';
+const BACKGROUND_SIZE = 9558,
+  START_MONSTERS_COUNT = 3,
+  KNIGHT_RUN_GIF_URL = 'url(assets/img/run.gif)',
+  KNIGHT_IDLE_GIF_URL = 'url(assets/img/idle.gif)',
+  KNIGHT_BLOCK_GIF_URL = 'url(assets/img/block.gif)',
+  DOG_RUN_GIF_URL = 'url(assets/img/dog-run.gif)',
+  ELF_RUN_GIF_URL = 'url(assets/img/elf-run.gif)',
+  GRINCH_RUN_GIF_URL = 'url(assets/img/grinch-run.gif)',
+  SKILL_SWORD_URL = 'assets/img/skill-sword.png',
+  SKILL_BLOCK_URL = 'assets/img/skill-shield.png',
+  SKILL_SWORDS_TRIO_URL = 'assets/img/skill-sword-3.png',
+  SKILL_UNAVAILABLE_FILTER = 'grayscale(1)',
+  SKILL_SWORDS_HAIL_URL = 'assets/img/skill-sword-8.png';
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -15,6 +20,7 @@ const startPage = document.querySelector('.screen-start'),
   scoreElement = gamePage.querySelector('.kills-value'),
   nameInfo = gamePage.querySelector('.user-info'),
   pauseModal = gamePage.querySelector('.pause'),
+  skillsWrapper = gamePage.querySelector('.game-panel-skills');
   healthContainer = gamePage.querySelector('.panel-xp .score-value'),
   healthContainerValue = healthContainer.querySelector('span'),
   timeElement = gamePage.querySelector('.timer-value'),
@@ -63,6 +69,41 @@ const Monster = {
   }
 };
 
+const Weapon = {
+  sword: {
+    key: '1',
+    rechargeTime: 0,
+    magicLevelConsumption: 0,
+    damage: 15,
+    iconURL: SKILL_SWORD_URL,
+    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+  },
+  block: {
+    key: '2',
+    rechargeTime: 0,
+    magicLevelConsumption: 5,
+    damage: 0,
+    iconURL: SKILL_BLOCK_URL,
+    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+  },
+  swordsTrio: {
+    key: '3',
+    rechargeTime: 3,
+    magicLevelConsumption: 10,
+    damage: 40,
+    iconURL: SKILL_SWORDS_TRIO_URL,
+    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+  },
+  swordsHail: {
+    key: '4',
+    rechargeTime: 15,
+    magicLevelConsumption: 30,
+    damage: 100,
+    iconURL: SKILL_SWORDS_HAIL_URL,
+    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+  },
+}
+
 const knightDefaultData = {
   className: 'knight',
   width: 72,
@@ -77,8 +118,10 @@ const knightDefaultData = {
 }
 
 const monsterTypesArr = Object.keys(Monster);
+const weaponTypesArr = Object.keys(Weapon);
 
 const monstersData = [];
+let skillsData = [];
 let knightData = {};
 let knight;
 
@@ -111,14 +154,11 @@ function initGame() {
 
     createMonstersData(START_MONSTERS_COUNT);
     renderMonsters();
+
+    createSkillsData();
+    renderSkills();
   }  
 }
-
-// function playGame() {
-//   if (settings.isStarted) {
-//     moveMonsters();
-//   }
-// }
 
 function createKnightData() {
   knightData = {
@@ -137,7 +177,7 @@ function createKnightData() {
 
 function renderKnight() {
   knight = new Knight(knightData);
-  knight.render(gamePage);
+  gamePage.append(knight.render());
 }
 
 function createMonstersData(count) {
@@ -160,13 +200,27 @@ function createMonstersData(count) {
 function renderMonsters() {
   monstersData.forEach(monsterData => {
     const monster = new Enemy(monsterData);
-    monster.render(gamePage);
+    gamePage.append(monster.render());
   });
 }
 
-// function moveMonsters() {
+function createSkillsData() {
+  skillsData = Object.assign({}, Weapon);
+}
 
-// }
+function renderSkills() {
+  weaponTypesArr.forEach(key => {
+    const skill = new Skill(skillsData[key]);
+    skillsWrapper.append(skill.render());
+  });
+}
+
+function createElement(template) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = template;  
+  
+  return wrapper.firstChild;
+}
 
 function getRandomMonsterType() {  
   return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
@@ -180,10 +234,9 @@ function getMonsterStartPosition() {
 
 class Knight {
   constructor(props) {
-    this._directions = {
-      back: false,
-      forward: false
-    };
+    this._isAttack = false;
+    this._isMoving = false;
+    this._isBack = false;
     this._element = null;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;
@@ -194,20 +247,20 @@ class Knight {
     this._height = props.height;
   }
 
-  render(container) {
-    const knightElement = document.createElement('div');
-    knightElement.classList.add(this._className);
-    
-    container.appendChild(knightElement);
-    this._element = knightElement;
+  render() {
+    return this._element = createElement(this.template);
   }
 
   unrender(container) {
-    container.removeChild(this._element);
+    container.remove(this._element);
   }
 
   get element() {
     return this._element;
+  }
+
+  get template() {
+    return `<div class="${this._className}"></div>`;
   }
 }
 
@@ -215,7 +268,8 @@ class Enemy {
   constructor(props) {
     this._damage = props.damage;
     this._element = null;
-    this._back = false;
+    this._isAttack = false;
+    this._isBack = false;
     this._position = props.position;
     this._width = props.width;
     this._height = props.height;
@@ -224,26 +278,44 @@ class Enemy {
     this._className = props.className;
   }
 
-  render(container) {
-		const monsterElement = document.createElement('div');
-    monsterElement.classList.add(this._className);
-    monsterElement.classList.add('monster');
-    monsterElement.style.left = `${this._position}px`;
-    
-    container.appendChild(monsterElement);
-    this._element = monsterElement;
+  render() {
+    return this._element = createElement(this.template);
   }
 
   unrender(container) {
-    container.removeChild(this._element);
-  }
-
-  go() {
-    this._position -= this._speed;
+    container.remove(this._element);
   }
 
   get element() {
     return this._element;
+  }
+
+  get template() {
+    return `<div class="${this._className} monster" style="left: ${this._position}px"></div>`;
+  }
+}
+
+class Skill {
+  constructor(props) {
+    this._rechargeTime = props.rechargeTime;
+    this._damage = props.damage;
+    this._iconURL = props.iconURL;
+    this._unavailableFilter = props.unavailableFilter;
+    this._isAvailable = true;
+    this._isUsing = false;
+    this._element = null;
+  }
+
+  render() {
+    return this._element = createElement(this.template);
+  }
+
+  unrender(container) {
+    container.remove(this._element);
+  }
+
+  get template() {
+    return `<img src="${this._iconURL}" alt="skill">`;
   }
 }
   
