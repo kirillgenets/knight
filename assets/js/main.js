@@ -247,20 +247,20 @@ class Knight {
     this._height = props.height;
   }
 
-  render() {
-    return this._element = createElement(this.template);
-  }
-
-  unrender(container) {
-    container.remove(this._element);
-  }
-
   get element() {
     return this._element;
   }
 
   get template() {
     return `<div class="${this._className}"></div>`;
+  }
+
+  render() {
+    return this._element = createElement(this.template);
+  }
+
+  unrender(container) {
+    container.remove(this._element);
   }
 }
 
@@ -278,20 +278,20 @@ class Enemy {
     this._className = props.className;
   }
 
-  render() {
-    return this._element = createElement(this.template);
-  }
-
-  unrender(container) {
-    container.remove(this._element);
-  }
-
   get element() {
     return this._element;
   }
 
   get template() {
     return `<div class="${this._className} monster" style="left: ${this._position}px"></div>`;
+  }
+
+  render() {
+    return this._element = createElement(this.template);
+  }
+
+  unrender(container) {
+    container.remove(this._element);
   }
 }
 
@@ -306,16 +306,16 @@ class Skill {
     this._element = null;
   }
 
+  get template() {
+    return `<img src="${this._iconURL}" alt="skill">`;
+  }
+
   render() {
     return this._element = createElement(this.template);
   }
 
   unrender(container) {
     container.remove(this._element);
-  }
-
-  get template() {
-    return `<img src="${this._iconURL}" alt="skill">`;
   }
 }
   
