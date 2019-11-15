@@ -1,16 +1,5 @@
 const BACKGROUND_SIZE = 9558,
-  START_MONSTERS_COUNT = 3,
-  KNIGHT_RUN_GIF_URL = 'url(assets/img/run.gif)',
-  KNIGHT_IDLE_GIF_URL = 'url(assets/img/idle.gif)',
-  KNIGHT_BLOCK_GIF_URL = 'url(assets/img/block.gif)',
-  DOG_RUN_GIF_URL = 'url(assets/img/dog-run.gif)',
-  ELF_RUN_GIF_URL = 'url(assets/img/elf-run.gif)',
-  GRINCH_RUN_GIF_URL = 'url(assets/img/grinch-run.gif)',
-  SKILL_SWORD_URL = 'assets/img/skill-sword.png',
-  SKILL_BLOCK_URL = 'assets/img/skill-shield.png',
-  SKILL_SWORDS_TRIO_URL = 'assets/img/skill-sword-3.png',
-  SKILL_UNAVAILABLE_FILTER = 'grayscale(1)',
-  SKILL_SWORDS_HAIL_URL = 'assets/img/skill-sword-8.png';
+  START_MONSTERS_COUNT = 3;
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -47,7 +36,7 @@ const Monster = {
     damage: 2,
     healthLevel: 15,
     speed: 0.7,
-    runGif: DOG_RUN_GIF_URL
+    runGif: 'url(assets/img/dog-run.gif)'
   },
   elf: {
     className: 'monster-elf',
@@ -56,7 +45,7 @@ const Monster = {
     damage: 5,
     healthLevel: 30,
     speed: 0.5,
-    runGif: ELF_RUN_GIF_URL
+    runGif: 'url(assets/img/elf-run.gif)'
   },
   grinch: {
     className: 'monster-grinch',
@@ -65,7 +54,7 @@ const Monster = {
     damage: 10,
     healthLevel: 60,
     speed: 0.2,
-    runGif: GRINCH_RUN_GIF_URL
+    runGif: 'url(assets/img/grinch-run.gif)'
   }
 };
 
@@ -75,32 +64,28 @@ const Weapon = {
     rechargeTime: 0,
     magicLevelConsumption: 0,
     damage: 15,
-    iconURL: SKILL_SWORD_URL,
-    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+    iconURL: 'assets/img/skill-sword.png'
   },
   block: {
     key: '2',
     rechargeTime: 0,
     magicLevelConsumption: 5,
     damage: 0,
-    iconURL: SKILL_BLOCK_URL,
-    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+    iconURL: 'assets/img/skill-shield.png'
   },
   swordsTrio: {
     key: '3',
-    rechargeTime: 3,
+    rechargeTime: 3000,
     magicLevelConsumption: 10,
     damage: 40,
-    iconURL: SKILL_SWORDS_TRIO_URL,
-    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+    iconURL: 'assets/img/skill-sword-3.png'
   },
   swordsHail: {
     key: '4',
-    rechargeTime: 15,
+    rechargeTime: 15000,
     magicLevelConsumption: 30,
     damage: 100,
-    iconURL: SKILL_SWORDS_HAIL_URL,
-    unavailableFilter: SKILL_UNAVAILABLE_FILTER
+    iconURL: 'assets/img/skill-sword-8.png'
   },
 }
 
@@ -112,9 +97,9 @@ const knightDefaultData = {
   healthLevel: 100,
   magicLevel: 100,
   startPos: 10,
-  runGif: KNIGHT_RUN_GIF_URL,
-  idleGif: KNIGHT_IDLE_GIF_URL,
-  blockGif: KNIGHT_BLOCK_GIF_URL
+  runGif: 'url(assets/img/run.gif)',
+  idleGif: 'url(assets/img/idle.gif)',
+  blockGif: 'url(assets/img/block.gif)'
 }
 
 const monsterTypesArr = Object.keys(Monster);
@@ -290,8 +275,9 @@ class Enemy {
     return this._element = createElement(this.template);
   }
 
-  unrender(container) {
-    container.remove(this._element);
+  unrender() {
+    this._element.remove();
+    this._element = null;
   }
 }
 
@@ -300,10 +286,25 @@ class Skill {
     this._rechargeTime = props.rechargeTime;
     this._damage = props.damage;
     this._iconURL = props.iconURL;
-    this._unavailableFilter = props.unavailableFilter;
     this._isAvailable = true;
     this._isUsing = false;
     this._element = null;
+    this._rechargeTimeout = null;
+    this._changeAvailability = this._changeAvailability.bind(this);
+  }
+
+  _changeState() {
+    this._isUsing = this._isUsing ? false : true;        
+    this._rechargeTimeout = setTimeout(this._changeAvailability, this._rechargeTime);
+  }
+
+  _changeIconView() {
+    this._element.style.filter = this._element.style.filter === 'grayscale(1)' ? 'none' : 'grayscale(1)';
+  }
+
+  _changeAvailability() {
+    this._isAvailable = this._isAvailable ? false : true;
+    this._changeIconView();
   }
 
   get template() {
@@ -314,8 +315,14 @@ class Skill {
     return this._element = createElement(this.template);
   }
 
-  unrender(container) {
-    container.remove(this._element);
+  unrender() {
+    this._element.remove();
+    this._element = null;
+  }
+
+  update() {
+    this._changeIconView();
+    this._changeState();
   }
 }
   
