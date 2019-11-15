@@ -197,6 +197,7 @@ function renderSkills() {
   weaponTypesArr.forEach(key => {
     const skill = new Skill(skillsData[key]);
     skillsWrapper.append(skill.render());
+    skill.activate();
   });
 }
 
@@ -287,24 +288,13 @@ class Skill {
     this._damage = props.damage;
     this._iconURL = props.iconURL;
     this._isAvailable = true;
-    this._isUsing = false;
     this._element = null;
-    this._rechargeTimeout = null;
-    this._changeAvailability = this._changeAvailability.bind(this);
+    this._recharge = this._recharge.bind(this);
   }
-
-  _changeState() {
-    this._isUsing = this._isUsing ? false : true;        
-    this._rechargeTimeout = setTimeout(this._changeAvailability, this._rechargeTime);
-  }
-
-  _changeIconView() {
-    this._element.style.filter = this._element.style.filter === 'grayscale(1)' ? 'none' : 'grayscale(1)';
-  }
-
-  _changeAvailability() {
-    this._isAvailable = this._isAvailable ? false : true;
-    this._changeIconView();
+  
+  _recharge() {
+    this._element.style.filter = 'none';
+    this._isAvailable = true;
   }
 
   get template() {
@@ -320,9 +310,13 @@ class Skill {
     this._element = null;
   }
 
-  update() {
-    this._changeIconView();
-    this._changeState();
+  activate() {
+    if (this._isAvailable) {
+      this._isAvailable = false;
+      this._element.style.filter = 'grayscale(1)';
+
+      setTimeout(this._recharge, this._rechargeTime);
+    }
   }
 }
   
