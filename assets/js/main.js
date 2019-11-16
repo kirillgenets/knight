@@ -106,7 +106,7 @@ const monsterTypesArr = Object.keys(Monster);
 const weaponTypesArr = Object.keys(Weapon);
 
 const monstersData = [];
-let skillsData = [];
+const skillsData = {};
 let knightData = {};
 let knight;
 
@@ -186,18 +186,40 @@ function renderMonsters() {
   monstersData.forEach(monsterData => {
     const monster = new Enemy(monsterData);
     gamePage.append(monster.render());
+
+    // function damageKnight() {
+    //   if (!skillsData["block"].active) {
+    //     // код 
+    //   }
+    // }
   });
 }
 
 function createSkillsData() {
-  skillsData = Object.assign({}, Weapon);
+  for (key in Weapon) {
+    skillsData[key] = Object.assign({}, Weapon[key]);
+    skillsData[key].active = false;
+  }
 }
 
 function renderSkills() {
   weaponTypesArr.forEach(key => {
     const skill = new Skill(skillsData[key]);
     skillsWrapper.append(skill.render());
-    skill.activate();
+
+    document.addEventListener('keydown', onSkillsKeyDown);
+    document.addEventListener('keyup', onSkillsKeyUp);
+
+    function onSkillsKeyDown(evt) {
+      if (evt.key === skillsData[key].key) {
+        skill.activate();
+        skillsData[key].active = true;
+      }
+    }
+
+    function onSkillsKeyUp(evt) {
+      skillsData[key].active = false;
+    }
   });
 }
 
@@ -284,6 +306,7 @@ class Enemy {
 
 class Skill {
   constructor(props) {
+    this._name = props.name;
     this._rechargeTime = props.rechargeTime;
     this._damage = props.damage;
     this._iconURL = props.iconURL;
@@ -319,4 +342,3 @@ class Skill {
     }
   }
 }
-  
