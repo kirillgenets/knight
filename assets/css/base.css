@@ -221,6 +221,18 @@ button {
 	text-align: center;
 	text-transform: uppercase;
 }
+.swords-hail {
+    width: 191px;
+    height: 130px;
+    
+    position: absolute;
+    left: 50%;
+    bottom: 100px;
+    z-index: 10;
+
+    background-size: 100%;
+    background-repeat: no-repeat;
+}
 .hidden {
     display: none;
 }

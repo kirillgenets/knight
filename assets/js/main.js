@@ -64,28 +64,32 @@ const Weapon = {
     rechargeTime: 0,
     magicLevelConsumption: 0,
     damage: 15,
-    iconURL: 'assets/img/skill-sword.png'
+    iconURL: 'assets/img/skill-sword.png',
+    template: ``,
   },
   block: {
     key: '2',
     rechargeTime: 0,
     magicLevelConsumption: 5,
     damage: 0,
-    iconURL: 'assets/img/skill-shield.png'
+    iconURL: 'assets/img/skill-shield.png',
+    template: ``,
   },
   swordsTrio: {
     key: '3',
     rechargeTime: 3000,
     magicLevelConsumption: 10,
     damage: 40,
-    iconURL: 'assets/img/skill-sword-3.png'
+    iconURL: 'assets/img/skill-sword-3.png',
+    template: ``,
   },
   swordsHail: {
     key: '4',
     rechargeTime: 15000,
     magicLevelConsumption: 30,
     damage: 100,
-    iconURL: 'assets/img/skill-sword-8.png'
+    iconURL: 'assets/img/skill-sword-8.png',
+    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`,
   },
 }
 
@@ -203,22 +207,30 @@ function createSkillsData() {
 }
 
 function renderSkills() {
-  weaponTypesArr.forEach(key => {
-    const skill = new Skill(skillsData[key]);
+  weaponTypesArr.forEach(type => {
+    const skill = new Skill(skillsData[type]);
     skillsWrapper.append(skill.render());
 
     document.addEventListener('keydown', onSkillsKeyDown);
-    document.addEventListener('keyup', onSkillsKeyUp);
 
     function onSkillsKeyDown(evt) {
-      if (evt.key === skillsData[key].key) {
+      if (evt.key === skillsData[type].key) {
         skill.activate();
-        skillsData[key].active = true;
+        skillsData[type].active = true;
+      }
+
+      if (skillsData[type].key === skillsData["swordsHail"].key) {
+        useSwordsHail();
       }
     }
 
-    function onSkillsKeyUp(evt) {
-      skillsData[key].active = false;
+    function useSwordsHail() {
+      const skillDisplay = createElement(skillsData["swordsHail"].template);
+      skillDisplay.style.left = `${knightData.position}px`;
+
+      gamePage.append(skillDisplay);
+
+      setTimeout(() => {skillDisplay.remove()}, 2600);
     }
   });
 }
