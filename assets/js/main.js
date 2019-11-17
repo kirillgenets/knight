@@ -65,7 +65,7 @@ const Weapon = {
     magicLevelConsumption: 0,
     damage: 15,
     iconURL: 'assets/img/skill-sword.png',
-    template: ``,
+    template: ``
   },
   block: {
     key: '2',
@@ -73,7 +73,7 @@ const Weapon = {
     magicLevelConsumption: 5,
     damage: 0,
     iconURL: 'assets/img/skill-shield.png',
-    template: ``,
+    template: ``
   },
   swordsTrio: {
     key: '3',
@@ -81,7 +81,7 @@ const Weapon = {
     magicLevelConsumption: 10,
     damage: 40,
     iconURL: 'assets/img/skill-sword-3.png',
-    template: ``,
+    template: `<div class="swords-trio"></div>`
   },
   swordsHail: {
     key: '4',
@@ -89,7 +89,7 @@ const Weapon = {
     magicLevelConsumption: 30,
     damage: 100,
     iconURL: 'assets/img/skill-sword-8.png',
-    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`,
+    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`
   },
 }
 
@@ -192,7 +192,7 @@ function renderMonsters() {
     gamePage.append(monster.render());
 
     // function damageKnight() {
-    //   if (!skillsData["block"].active) {
+    //   if (!skillsData["block"].isActive) {
     //     // код 
     //   }
     // }
@@ -202,7 +202,9 @@ function renderMonsters() {
 function createSkillsData() {
   for (key in Weapon) {
     skillsData[key] = Object.assign({}, Weapon[key]);
-    skillsData[key].active = false;
+    skillsData[key].isActive = false;
+    skillsData[key].isAvailable = true;
+    skillsData[key].name = key;
   }
 }
 
@@ -215,24 +217,52 @@ function renderSkills() {
 
     function onSkillsKeyDown(evt) {
       if (evt.key === skillsData[type].key) {
+        if (skillsData[type].key === skillsData["swordsHail"].key) {
+          useSwordsHail();
+        }
+
+        if (skillsData[type].key === skillsData["swordsTrio"].key) {
+          useSwordsTrio();
+        }
+
         skill.activate();
-        skillsData[type].active = true;
+        skillsData[type].isActive = true;
       }
-
-      if (skillsData[type].key === skillsData["swordsHail"].key) {
-        useSwordsHail();
-      }
-    }
-
-    function useSwordsHail() {
-      const skillDisplay = createElement(skillsData["swordsHail"].template);
-      skillDisplay.style.left = `${knightData.position}px`;
-
-      gamePage.append(skillDisplay);
-
-      setTimeout(() => {skillDisplay.remove()}, 2600);
     }
   });
+}
+
+function useSwordsHail() {
+  if (skillsData["swordsHail"].isAvailable) {
+    const skillDisplay = createElement(skillsData["swordsHail"].template);
+    skillDisplay.style.left = `${knightData.position + 70}px`;
+
+    gamePage.append(skillDisplay);
+
+    setTimeout(() => {skillDisplay.remove()}, 2600);
+  }  
+}
+
+function useSwordsTrio() {
+  if (skillsData["swordsTrio"].isAvailable) {
+    const skillDisplay = createElement(skillsData["swordsTrio"].template);
+    skillDisplay.x = knightData.position + 70;
+    skillDisplay.style.left = `${skillDisplay.x}px`;
+
+    gamePage.append(skillDisplay);
+
+    requestAnimationFrame(moveSwordsTrio);
+    setTimeout(() => {skillDisplay.remove()}, 18000);
+
+    function moveSwordsTrio() {
+      if (skillDisplay) {
+        skillDisplay.x += settings.speed;
+        skillDisplay.style.left = `${skillDisplay.x}px`;
+
+        requestAnimationFrame(moveSwordsTrio);
+      }
+    }
+  }  
 }
 
 function createElement(template) {
@@ -330,6 +360,7 @@ class Skill {
   _recharge() {
     this._element.style.filter = 'none';
     this._isAvailable = true;
+    skillsData[this._name].isAvailable = this._isAvailable;
   }
 
   get template() {
@@ -348,6 +379,8 @@ class Skill {
   activate() {
     if (this._isAvailable) {
       this._isAvailable = false;
+      skillsData[this._name].isAvailable = this._isAvailable;
+
       this._element.style.filter = 'grayscale(1)';
 
       setTimeout(this._recharge, this._rechargeTime);
