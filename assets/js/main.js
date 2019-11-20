@@ -7,11 +7,10 @@ const startPage = document.querySelector('.screen-start'),
   startButton = startForm.querySelector('.start-submit'),
   gamePage = document.querySelector('.screen-game'),
   scoreElement = gamePage.querySelector('.kills-value'),
-  nameInfo = gamePage.querySelector('.user-info'),
+  userInfo = gamePage.querySelector('.game-panel-user');
+  nameInfo = userInfo.querySelector('.user-info'),
   pauseModal = gamePage.querySelector('.pause'),
   skillsWrapper = gamePage.querySelector('.game-panel-skills');
-  healthContainer = gamePage.querySelector('.panel-xp .score-value'),
-  healthContainerValue = healthContainer.querySelector('span'),
   timeElement = gamePage.querySelector('.timer-value'),
   rankingPage = document.querySelector('.screen-ranking'),
   rankingTable = rankingPage.querySelector('.ranking-table'),
@@ -93,6 +92,19 @@ const Weapon = {
   },
 }
 
+const indicatorsDefaultData = {
+  xp: {
+    type: 'xp',
+    color: '#9f000a',
+    level: 100
+  },
+  mp: {
+    type: 'mp',
+    color: '#004bb8',
+    level: 100
+  }
+}
+
 const knightDefaultData = {
   className: 'knight',
   width: 72,
@@ -108,9 +120,11 @@ const knightDefaultData = {
 
 const monsterTypesArr = Object.keys(Monster);
 const weaponTypesArr = Object.keys(Weapon);
+const indicatorTypesArr = Object.keys(indicatorsDefaultData);
 
 const monstersData = [];
 const skillsData = {};
+let indicatorsData = {};
 let knightData = {};
 let knight;
 
@@ -137,16 +151,24 @@ function initGame() {
 
     startPage.classList.add('hidden');
     nameInfo.textContent = settings.username;
-
-    createKnightData();
-    renderKnight();
-
-    createMonstersData(START_MONSTERS_COUNT);
-    renderMonsters();
-
-    createSkillsData();
-    renderSkills();
+    
+    createStartData();
+    renderAllObjects();
   }  
+}
+
+function createStartData() {
+  createKnightData();
+  createMonstersData(START_MONSTERS_COUNT);
+  createSkillsData();
+  createIndicatorsData();
+}
+
+function renderAllObjects() {
+  renderKnight();  
+  renderMonsters();
+  renderSkills();
+  renderIndicators();
 }
 
 function createKnightData() {
@@ -263,6 +285,17 @@ function useSwordsTrio() {
       }
     }
   }  
+}
+
+function createIndicatorsData() {
+  indicatorsData = Object.assign({}, indicatorsDefaultData);
+}
+
+function renderIndicators() {
+  indicatorTypesArr.forEach(type => {
+    const indicator = new Indicator(indicatorsData[type]);
+    userInfo.append(indicator.render());
+  });
 }
 
 function createElement(template) {
@@ -385,5 +418,37 @@ class Skill {
 
       setTimeout(this._recharge, this._rechargeTime);
     }
+  }
+}
+
+class Indicator {
+  constructor(props) {
+    this._color = props.color;
+    this._level = props.level;
+    this._type = props.type;
+  }
+
+  get template() {
+    return (
+      `<div class="panel-${this._type}">
+        <div class="score-value">
+          <span>${this._level}</span>
+        </div>
+      </div>`
+    );
+  }
+
+  render() {
+    return this._element = createElement(this.template);
+  }
+
+  unrender() {
+    this._element.remove();
+    this._element = null;
+  }
+
+  decrease(value) {
+    this._level -= value;
+    this._element.firstChild.style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(255,255,255,1) ${this._level}%)`;
   }
 }
