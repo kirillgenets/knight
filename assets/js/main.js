@@ -1,5 +1,9 @@
 const BACKGROUND_SIZE = 9558,
-  START_MONSTERS_COUNT = 3;
+  START_MONSTERS_COUNT = 3,
+  GAME_WIDTH = document.documentElement.clientWidth,
+  WEAPON_AND_KNIGHT_GAP = 70,
+  SWORDS_TRIO_DURATION = 18000,
+  SWORDS_HAIL_DURATION = 2600;
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -113,9 +117,10 @@ const knightDefaultData = {
   healthLevel: 100,
   magicLevel: 100,
   startPos: 10,
-  runGif: 'url(assets/img/run.gif)',
-  idleGif: 'url(assets/img/idle.gif)',
-  blockGif: 'url(assets/img/block.gif)'
+  runGif: 'url(./assets/img/run.gif)',
+  idleGif: 'url(./assets/img/idle.gif)',
+  blockGif: 'url(./assets/img/block.gif)',
+  isBack: false
 }
 
 const monsterTypesArr = Object.keys(Monster);
@@ -126,7 +131,6 @@ const monstersData = [];
 const skillsData = {};
 let indicatorsData = {};
 let knightData = {};
-let knight;
 
 rankingPage.classList.add('hidden');
 
@@ -187,8 +191,45 @@ function createKnightData() {
 }
 
 function renderKnight() {
-  knight = new Knight(knightData);
+  const knight = new Knight(knightData);
   gamePage.append(knight.render());
+
+  document.addEventListener('keydown', onKnightKeyDown);
+  document.addEventListener('keyup', onKnightKeyUp);
+
+  function onKnightKeyDown(evt) {
+    switch (evt.key) {
+      case 'ArrowLeft':
+        knightData.isBack = true;        
+        moveKnight();
+        break;
+      case 'ArrowRight':
+        knightData.isBack = false;        
+        moveKnight();
+        break;
+    }
+  }
+
+  function onKnightKeyUp(evt) {
+    if (evt.key === 'ArrowLeft' || evt.key === 'ArrowRight') {
+      knight.stop();
+    }
+  } 
+
+  function moveKnight() {
+    if (knightData.isBack) {
+      knightData.position -= knightData.speed;
+    } else {
+      knightData.position += knightData.speed;
+    }
+
+    if (knightData.position < 0) {
+      knightData.position = 0;
+    }
+
+    knight.isBack = knightData.isBack;
+    knight.move(knightData.position);
+  }
 }
 
 function createMonstersData(count) {
@@ -230,6 +271,10 @@ function createSkillsData() {
   }
 }
 
+function setSkillAvailability(skill, isAvailable) {
+  skillsData[skill].isAvailable = isAvailable;
+}
+
 function renderSkills() {
   weaponTypesArr.forEach(type => {
     const skill = new Skill(skillsData[type]);
@@ -240,51 +285,69 @@ function renderSkills() {
     function onSkillsKeyDown(evt) {
       if (evt.key === skillsData[type].key) {
         if (skillsData[type].key === skillsData["swordsHail"].key) {
-          useSwordsHail();
+          useSwordsHail(knightData.isBack);
         }
 
         if (skillsData[type].key === skillsData["swordsTrio"].key) {
-          useSwordsTrio();
+          useSwordsTrio(knightData.isBack);
         }
 
-        skill.activate();
+        skill.activate(setSkillAvailability);
         skillsData[type].isActive = true;
       }
     }
   });
 }
 
-function useSwordsHail() {
+function useSwordsHail(isBack) {
   if (skillsData["swordsHail"].isAvailable) {
     const skillDisplay = createElement(skillsData["swordsHail"].template);
-    skillDisplay.style.left = `${knightData.position + 70}px`;
+
+    setSkillDisplayPosition(isBack, skillDisplay);
 
     gamePage.append(skillDisplay);
 
-    setTimeout(() => {skillDisplay.remove()}, 2600);
+    setTimeout(() => {skillDisplay.remove()}, SWORDS_HAIL_DURATION);
   }  
 }
 
-function useSwordsTrio() {
+function useSwordsTrio(isBack) {
   if (skillsData["swordsTrio"].isAvailable) {
     const skillDisplay = createElement(skillsData["swordsTrio"].template);
-    skillDisplay.x = knightData.position + 70;
-    skillDisplay.style.left = `${skillDisplay.x}px`;
+
+    setSkillDisplayPosition(isBack, skillDisplay);
 
     gamePage.append(skillDisplay);
 
     requestAnimationFrame(moveSwordsTrio);
-    setTimeout(() => {skillDisplay.remove()}, 18000);
+    setTimeout(() => {skillDisplay.remove()}, SWORDS_TRIO_DURATION);
 
     function moveSwordsTrio() {
       if (skillDisplay) {
-        skillDisplay.x += settings.speed;
+        if (isBack) {
+          skillDisplay.x -= settings.speed;
+        } else {
+          skillDisplay.x += settings.speed;
+        }
+        
         skillDisplay.style.left = `${skillDisplay.x}px`;
 
         requestAnimationFrame(moveSwordsTrio);
       }
     }
   }  
+}
+
+function setSkillDisplayPosition(isBack, skillDisplay) {  
+  if (isBack) {
+    skillDisplay.x = knightData.position - WEAPON_AND_KNIGHT_GAP;
+    skillDisplay.style.transform = 'scale(-1, 1)';
+  } else {
+    skillDisplay.x = knightData.position + WEAPON_AND_KNIGHT_GAP;
+    skillDisplay.style.transform = 'none';
+  }
+
+  skillDisplay.style.left = `${skillDisplay.x}px`;
 }
 
 function createIndicatorsData() {
@@ -319,8 +382,8 @@ class Knight {
   constructor(props) {
     this._isAttack = false;
     this._isMoving = false;
-    this._isBack = false;
     this._element = null;
+    this._isBack = props._isBack;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;
     this._magicLevel = props.magicLevel;
@@ -328,6 +391,14 @@ class Knight {
     this._className = props.className; 
     this._width = props.width;
     this._height = props.height;
+    this._runGif = props.runGif;
+    this._idleGif = props.idleGif;
+  }
+
+  set isBack(value) {
+    if (typeof value === 'boolean') {
+      this._isBack = value;
+    }
   }
 
   get element() {
@@ -338,12 +409,33 @@ class Knight {
     return `<div class="${this._className}"></div>`;
   }
 
+  _changeDirection() {
+    if (this._isBack) {
+      this._element.style.transform = 'scale(-1, 1)';
+    } else {
+      this._element.style.transform = 'none';
+    }
+  }
+
   render() {
     return this._element = createElement(this.template);
   }
 
   unrender(container) {
     container.remove(this._element);
+  }
+
+  move(newPos) {
+    this._position = newPos;
+    this._element.style.left = `${this._position}px`;
+    this.isMoving = true;
+    this._element.style.backgroundImage = this._runGif;
+    this._changeDirection();
+  }
+
+  stop() {
+    this.isMoving = false;
+    this._element.style.backgroundImage = this._idleGif;
   }
 }
 
@@ -390,10 +482,10 @@ class Skill {
     this._recharge = this._recharge.bind(this);
   }
   
-  _recharge() {
+  _recharge(callback) {
     this._element.style.filter = 'none';
     this._isAvailable = true;
-    skillsData[this._name].isAvailable = this._isAvailable;
+    callback(this._name, this._isAvailable);
   }
 
   get template() {
@@ -409,14 +501,14 @@ class Skill {
     this._element = null;
   }
 
-  activate() {
+  activate(callback) {
     if (this._isAvailable) {
       this._isAvailable = false;
-      skillsData[this._name].isAvailable = this._isAvailable;
+      callback(this._name, this._isAvailable);
 
       this._element.style.filter = 'grayscale(1)';
 
-      setTimeout(this._recharge, this._rechargeTime);
+      setTimeout(this._recharge, this._rechargeTime, callback);
     }
   }
 }
