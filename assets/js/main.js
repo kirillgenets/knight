@@ -217,6 +217,13 @@ function renderKnight() {
   } 
 
   function moveKnight() {
+    changeKnightPosition();
+
+    knight.isBack = knightData.isBack;
+    knight.move(knightData.position);
+  }
+
+  function changeKnightPosition() {
     if (knightData.isBack) {
       knightData.position -= knightData.speed;
     } else {
@@ -226,9 +233,6 @@ function renderKnight() {
     if (knightData.position < 0) {
       knightData.position = 0;
     }
-
-    knight.isBack = knightData.isBack;
-    knight.move(knightData.position);
   }
 }
 
@@ -253,6 +257,37 @@ function renderMonsters() {
   monstersData.forEach(monsterData => {
     const monster = new Enemy(monsterData);
     gamePage.append(monster.render());
+
+    requestAnimationFrame(moveMonster);
+
+    function moveMonster() {
+      if (settings.isStarted) {
+        changeMonsterDirection();
+        changeMonsterPosition();
+        
+        monster.move(monsterData.position);
+
+        requestAnimationFrame(moveMonster);
+      }
+    }
+
+    function changeMonsterDirection() {
+      if (monsterData.position < knightData.position) {
+        monsterData.isBack = true;
+      } else {
+        monsterData.isBack = false;
+      }
+
+      monster.isBack = monsterData.isBack;
+    }
+
+    function changeMonsterPosition() {
+      if (monsterData.isBack) {
+        monsterData.position += monsterData.speed;
+      } else {
+        monsterData.position -= monsterData.speed;
+      }
+    }
 
     // function damageKnight() {
     //   if (!skillsData["block"].isActive) {
@@ -303,7 +338,8 @@ function useSwordsHail(isBack) {
   if (skillsData["swordsHail"].isAvailable) {
     const skillDisplay = createElement(skillsData["swordsHail"].template);
 
-    setSkillDisplayPosition(isBack, skillDisplay);
+    let position = setSkillDisplayPosition(isBack, skillDisplay);
+    skillDisplay.style.left = `${position}px`;
 
     gamePage.append(skillDisplay);
 
@@ -315,7 +351,8 @@ function useSwordsTrio(isBack) {
   if (skillsData["swordsTrio"].isAvailable) {
     const skillDisplay = createElement(skillsData["swordsTrio"].template);
 
-    setSkillDisplayPosition(isBack, skillDisplay);
+    let position = setSkillDisplayPosition(isBack, skillDisplay);
+    skillDisplay.style.left = `${position}px`;
 
     gamePage.append(skillDisplay);
 
@@ -323,14 +360,14 @@ function useSwordsTrio(isBack) {
     setTimeout(() => {skillDisplay.remove()}, SWORDS_TRIO_DURATION);
 
     function moveSwordsTrio() {
-      if (skillDisplay) {
+      if (skillDisplay && settings.isStarted) {
         if (isBack) {
-          skillDisplay.x -= settings.speed;
+          position -= settings.speed;
         } else {
-          skillDisplay.x += settings.speed;
+          position += settings.speed;
         }
         
-        skillDisplay.style.left = `${skillDisplay.x}px`;
+        skillDisplay.style.left = `${position}px`;
 
         requestAnimationFrame(moveSwordsTrio);
       }
@@ -338,16 +375,17 @@ function useSwordsTrio(isBack) {
   }  
 }
 
-function setSkillDisplayPosition(isBack, skillDisplay) {  
+function setSkillDisplayPosition(isBack, skillDisplay) {
+  let x = knightData.position;
   if (isBack) {
-    skillDisplay.x = knightData.position - WEAPON_AND_KNIGHT_GAP;
+    x -= knightData.width - WEAPON_AND_KNIGHT_GAP;
     skillDisplay.style.transform = 'scale(-1, 1)';
   } else {
-    skillDisplay.x = knightData.position + WEAPON_AND_KNIGHT_GAP;
+    x += WEAPON_AND_KNIGHT_GAP;
     skillDisplay.style.transform = 'none';
   }
 
-  skillDisplay.style.left = `${skillDisplay.x}px`;
+  return x;
 }
 
 function createIndicatorsData() {
@@ -395,6 +433,14 @@ class Knight {
     this._idleGif = props.idleGif;
   }
 
+  _changeDirection() {
+    if (this._isBack) {
+      this._element.style.transform = 'scale(-1, 1)';
+    } else {
+      this._element.style.transform = 'none';
+    }
+  }
+
   set isBack(value) {
     if (typeof value === 'boolean') {
       this._isBack = value;
@@ -407,14 +453,6 @@ class Knight {
 
   get template() {
     return `<div class="${this._className}"></div>`;
-  }
-
-  _changeDirection() {
-    if (this._isBack) {
-      this._element.style.transform = 'scale(-1, 1)';
-    } else {
-      this._element.style.transform = 'none';
-    }
   }
 
   render() {
@@ -453,6 +491,20 @@ class Enemy {
     this._className = props.className;
   }
 
+  _changeDirection() {
+    if (this._isBack) {
+      this._element.style.transform = 'scale(-1, 1)';
+    } else {
+      this._element.style.transform = 'none';
+    }
+  }
+
+  set isBack(value) {
+    if (typeof value === 'boolean') {
+      this._isBack = value;
+    }
+  }
+
   get element() {
     return this._element;
   }
@@ -468,6 +520,13 @@ class Enemy {
   unrender() {
     this._element.remove();
     this._element = null;
+  }
+
+  move(newPos) {
+    this._position = newPos;
+    this._element.style.left = `${this._position}px`;
+    this.isMoving = true;
+    this._changeDirection();
   }
 }
 
