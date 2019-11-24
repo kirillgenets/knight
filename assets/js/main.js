@@ -116,7 +116,7 @@ const knightDefaultData = {
   speed: 1.5,
   healthLevel: 100,
   magicLevel: 100,
-  startPos: 10,
+  startPos: 9,
   runGif: 'url(./assets/img/run.gif)',
   idleGif: 'url(./assets/img/idle.gif)',
   blockGif: 'url(./assets/img/block.gif)',
@@ -186,7 +186,8 @@ function createKnightData() {
     position: knightDefaultData.startPos,
     runGif: knightDefaultData.runGif,
     idleGif: knightDefaultData.idleGif,
-    blockGif: knightDefaultData.blockGif
+    blockGif: knightDefaultData.blockGif,
+    isMoving: false
   }
 }
 
@@ -213,12 +214,23 @@ function renderKnight() {
   function onKnightKeyUp(evt) {
     if (evt.key === 'ArrowLeft' || evt.key === 'ArrowRight') {
       knight.stop();
+      knightData.isMoving = false;
     }
   } 
 
   function moveKnight() {
     changeKnightPosition();
 
+    if (isKnightInTheMiddle()) {
+      moveBackground();
+      knightData.speed = 0;
+    }
+
+    if (settings.backgroundPosition === 0 || settings.backgroundPosition === BACKGROUND_SIZE) {
+      knightData.speed = knightDefaultData.speed;
+    }
+    
+    knightData.isMoving = true;
     knight.isBack = knightData.isBack;
     knight.move(knightData.position);
   }
@@ -236,11 +248,25 @@ function renderKnight() {
   }
 }
 
+function isKnightInTheMiddle() {
+  return knightData.position === GAME_WIDTH / 2 - knightData.width;
+}
+
+function moveBackground() {
+  if (settings.backgroundPosition > 0 && settings.backgroundPosition <= BACKGROUND_SIZE) {
+    settings.backgroundPosition += knightData.isBack ? settings.speed : -settings.speed;
+  }
+  
+  gamePage.style.backgroundPosition = `${settings.backgroundPosition}px 0`;
+}
+
 function createMonstersData(count) {
   for (let i = 0; i < count; i++) {
-    const monsterDefaultData = Monster[getRandomMonsterType()];
+    const type = getRandomMonsterType();
+    const monsterDefaultData = Monster[type];
     monstersData.push({
       id: i,
+      type: type,
       className: monsterDefaultData.className,
       damage: monsterDefaultData.damage,
       healthLevel: monsterDefaultData.healthLevel,
@@ -264,6 +290,7 @@ function renderMonsters() {
       if (settings.isStarted) {
         changeMonsterDirection();
         changeMonsterPosition();
+        changeMonsterSpeed();
         
         monster.move(monsterData.position);
 
@@ -286,6 +313,20 @@ function renderMonsters() {
         monsterData.position += monsterData.speed;
       } else {
         monsterData.position -= monsterData.speed;
+      }
+    }
+    
+    function changeMonsterSpeed() {
+      if (isKnightInTheMiddle() && knightData.isMoving) {
+        if (knightData.isBack) {
+          const difference = monsterData.position >= GAME_WIDTH / 2 + monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+          monsterData.speed = Monster[monsterData.type].speed + difference;
+        } else {
+          const difference = monsterData.position <= GAME_WIDTH / 2 - monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+          monsterData.speed = Monster[monsterData.type].speed + difference;
+        }
+      } else {
+        monsterData.speed = Monster[monsterData.type].speed;
       }
     }
 
@@ -419,9 +460,9 @@ function getMonsterStartPosition() {
 class Knight {
   constructor(props) {
     this._isAttack = false;
-    this._isMoving = false;
     this._element = null;
-    this._isBack = props._isBack;
+    this._isMoving = props.isMoving;
+    this._isBack = props.isBack;
     this._speed = props.speed;
     this._healthLevel = props.healthLevel;
     this._magicLevel = props.magicLevel;
