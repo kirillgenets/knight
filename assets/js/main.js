@@ -198,15 +198,17 @@ function renderKnight() {
   document.addEventListener('keydown', onKnightKeyDown);
   document.addEventListener('keyup', onKnightKeyUp);
 
+  requestAnimationFrame(moveKnight);
+
   function onKnightKeyDown(evt) {
     switch (evt.key) {
       case 'ArrowLeft':
         knightData.isBack = true;        
-        moveKnight();
+        knightData.isMoving = true;
         break;
       case 'ArrowRight':
         knightData.isBack = false;        
-        moveKnight();
+        knightData.isMoving = true;
         break;
     }
   }
@@ -219,20 +221,24 @@ function renderKnight() {
   } 
 
   function moveKnight() {
-    changeKnightPosition();
+    if (knightData.isMoving) {
+      changeKnightPosition();
 
-    if (isKnightInTheMiddle()) {
-      moveBackground();
-      knightData.speed = 0;
+      if (isKnightInTheMiddle()) {
+        moveBackground();
+        knightData.speed = 0;
+      }
+
+      if (settings.backgroundPosition === 0 || settings.backgroundPosition === BACKGROUND_SIZE) {
+        knightData.speed = knightDefaultData.speed;
+      }
+      
+      knightData.isMoving = true;
+      knight.isBack = knightData.isBack;
+      knight.move(knightData.position);
     }
 
-    if (settings.backgroundPosition === 0 || settings.backgroundPosition === BACKGROUND_SIZE) {
-      knightData.speed = knightDefaultData.speed;
-    }
-    
-    knightData.isMoving = true;
-    knight.isBack = knightData.isBack;
-    knight.move(knightData.position);
+    requestAnimationFrame(moveKnight);
   }
 
   function changeKnightPosition() {
@@ -274,7 +280,9 @@ function createMonstersData(count) {
       width: monsterDefaultData.width,
       height: monsterDefaultData.height,
       runGif: monsterDefaultData.runGif,
-      position: getMonsterStartPosition()  
+      position: getMonsterStartPosition(),
+      isBack: false,
+      isMoving: true
     });
   }  
 }
@@ -300,20 +308,26 @@ function renderMonsters() {
 
     function changeMonsterDirection() {
       if (monsterData.position < knightData.position) {
+        monsterData.isMoving = true;
         monsterData.isBack = true;
-      } else {
+      } else if (monsterData.position > knightData.position + knightData.width) {
+        monsterData.isMoving = true;
         monsterData.isBack = false;
+      } else {
+        monsterData.isMoving = false;
       }
 
       monster.isBack = monsterData.isBack;
     }
 
     function changeMonsterPosition() {
-      if (monsterData.isBack) {
-        monsterData.position += monsterData.speed;
-      } else {
-        monsterData.position -= monsterData.speed;
-      }
+      if (monsterData.isMoving) {
+        if (monsterData.isBack) {
+          monsterData.position += monsterData.speed;
+        } else {
+          monsterData.position -= monsterData.speed;
+        }
+      }      
     }
     
     function changeMonsterSpeed() {
@@ -328,6 +342,27 @@ function renderMonsters() {
       } else {
         monsterData.speed = Monster[monsterData.type].speed;
       }
+    }
+
+    function damageMonster() {
+      
+    }
+
+    function isMonsterDamagedBySwordsHail() {
+      const swordsHailElement = gamePage.querySelector('.swords-hail');
+      
+      return isMonsterDamaged(swordsHailElement);
+    }
+
+    function isMonsterDamagedBySwordsTrio() {
+      const allSwordsTrioElements = gamePage.querySelectorAll('.swords-trio');
+
+      return allSwordsTrioElements.some(element => isMonsterDamaged(element));
+    }
+
+    function isMonsterDamaged(skill) {
+      const skillCoords = skill.getBoundingClientRect();
+      return monsterData.position <= skillCoords.right && monsterData.position + monsterData.width >= skillCoords.left;
     }
 
     // function damageKnight() {
@@ -419,7 +454,7 @@ function useSwordsTrio(isBack) {
 function setSkillDisplayPosition(isBack, skillDisplay) {
   let x = knightData.position;
   if (isBack) {
-    x -= knightData.width - WEAPON_AND_KNIGHT_GAP;
+    x -= skillDisplay.clientWidth + WEAPON_AND_KNIGHT_GAP * 2;
     skillDisplay.style.transform = 'scale(-1, 1)';
   } else {
     x += WEAPON_AND_KNIGHT_GAP;
