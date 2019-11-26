@@ -3,7 +3,9 @@ const BACKGROUND_SIZE = 9558,
   GAME_WIDTH = document.documentElement.clientWidth,
   WEAPON_AND_KNIGHT_GAP = 70,
   SWORDS_TRIO_DURATION = 18000,
-  SWORDS_HAIL_DURATION = 2600;
+  SWORDS_HAIL_DURATION = 2600,
+  MONSTERS_DYING_TIME = 1000,
+  USER_NAME_TEMPLATE = '<div class="user-info"></div>';
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -12,7 +14,6 @@ const startPage = document.querySelector('.screen-start'),
   gamePage = document.querySelector('.screen-game'),
   scoreElement = gamePage.querySelector('.kills-value'),
   userInfo = gamePage.querySelector('.game-panel-user');
-  nameInfo = userInfo.querySelector('.user-info'),
   pauseModal = gamePage.querySelector('.pause'),
   skillsWrapper = gamePage.querySelector('.game-panel-skills');
   timeElement = gamePage.querySelector('.timer-value'),
@@ -39,7 +40,7 @@ const Monster = {
     damage: 2,
     healthLevel: 15,
     speed: 0.7,
-    runGif: 'url(assets/img/dog-run.gif)'
+    runGif: './assets/img/dog-run.gif'
   },
   elf: {
     className: 'monster-elf',
@@ -48,7 +49,7 @@ const Monster = {
     damage: 5,
     healthLevel: 30,
     speed: 0.5,
-    runGif: 'url(assets/img/elf-run.gif)'
+    runGif: './assets/img/elf-run.gif'
   },
   grinch: {
     className: 'monster-grinch',
@@ -57,7 +58,7 @@ const Monster = {
     damage: 10,
     healthLevel: 60,
     speed: 0.2,
-    runGif: 'url(assets/img/grinch-run.gif)'
+    runGif: './assets/img/grinch-run.gif'
   }
 };
 
@@ -67,33 +68,40 @@ const Weapon = {
     rechargeTime: 0,
     magicLevelConsumption: 0,
     damage: 15,
-    iconURL: 'assets/img/skill-sword.png',
-    template: ``
+    iconURL: './assets/img/skill-sword.png'
   },
   block: {
     key: '2',
     rechargeTime: 0,
     magicLevelConsumption: 5,
     damage: 0,
-    iconURL: 'assets/img/skill-shield.png',
-    template: ``
+    iconURL: './assets/img/skill-shield.png'
   },
   swordsTrio: {
     key: '3',
     rechargeTime: 3000,
     magicLevelConsumption: 10,
     damage: 40,
-    iconURL: 'assets/img/skill-sword-3.png',
-    template: `<div class="swords-trio"></div>`
+    iconURL: './assets/img/skill-sword-3.png'    
   },
   swordsHail: {
     key: '4',
     rechargeTime: 15000,
     magicLevelConsumption: 30,
     damage: 100,
-    iconURL: 'assets/img/skill-sword-8.png',
-    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`
+    iconURL: './assets/img/skill-sword-8.png',    
   },
+}
+
+const skillDisplaysDefaultData = {
+  swordsTrio: {
+    width: 90,
+    template: `<div class="swords-trio"></div>`
+  },
+  swordsHail: {
+    width: 191,
+    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`
+  }
 }
 
 const indicatorsDefaultData = {
@@ -117,9 +125,9 @@ const knightDefaultData = {
   healthLevel: 100,
   magicLevel: 100,
   startPos: 9,
-  runGif: 'url(./assets/img/run.gif)',
-  idleGif: 'url(./assets/img/idle.gif)',
-  blockGif: 'url(./assets/img/block.gif)',
+  runGif: './assets/img/run.gif',
+  idleGif: './assets/img/idle.gif',
+  blockGif: './assets/img/block.gif',
   isBack: false
 }
 
@@ -127,8 +135,9 @@ const monsterTypesArr = Object.keys(Monster);
 const weaponTypesArr = Object.keys(Weapon);
 const indicatorTypesArr = Object.keys(indicatorsDefaultData);
 
-const monstersData = [];
 const skillsData = {};
+const monstersData = [];
+const skillDisplaysData = [];
 let indicatorsData = {};
 let knightData = {};
 
@@ -154,7 +163,6 @@ function initGame() {
     settings.isStarted = true;
 
     startPage.classList.add('hidden');
-    nameInfo.textContent = settings.username;
     
     createStartData();
     renderAllObjects();
@@ -170,9 +178,9 @@ function createStartData() {
 
 function renderAllObjects() {
   renderKnight();  
-  renderMonsters();
+  renderAllMonsters();
   renderSkills();
-  renderIndicators();
+  renderUserInfo();
 }
 
 function createKnightData() {
@@ -195,12 +203,7 @@ function renderKnight() {
   const knight = new Knight(knightData);
   gamePage.append(knight.render());
 
-  document.addEventListener('keydown', onKnightKeyDown);
-  document.addEventListener('keyup', onKnightKeyUp);
-
-  requestAnimationFrame(moveKnight);
-
-  function onKnightKeyDown(evt) {
+  knight.onRun = (evt) => {
     switch (evt.key) {
       case 'ArrowLeft':
         knightData.isBack = true;        
@@ -213,12 +216,16 @@ function renderKnight() {
     }
   }
 
-  function onKnightKeyUp(evt) {
+  knight.onStop = (evt) => {
     if (evt.key === 'ArrowLeft' || evt.key === 'ArrowRight') {
       knight.stop();
       knightData.isMoving = false;
     }
-  } 
+  }
+
+  knight.bind();
+
+  requestAnimationFrame(moveKnight);
 
   function moveKnight() {
     if (knightData.isMoving) {
@@ -266,7 +273,7 @@ function moveBackground() {
   gamePage.style.backgroundPosition = `${settings.backgroundPosition}px 0`;
 }
 
-function createMonstersData(count) {
+function createMonstersData(count, startPos = getMonsterStartPosition()) {
   for (let i = 0; i < count; i++) {
     const type = getRandomMonsterType();
     const monsterDefaultData = Monster[type];
@@ -280,97 +287,109 @@ function createMonstersData(count) {
       width: monsterDefaultData.width,
       height: monsterDefaultData.height,
       runGif: monsterDefaultData.runGif,
-      position: getMonsterStartPosition(),
+      position: startPos,
       isBack: false,
-      isMoving: true
+      isMoving: true,
+      isDamaged: false
     });
   }  
 }
 
-function renderMonsters() {
-  monstersData.forEach(monsterData => {
-    const monster = new Enemy(monsterData);
-    gamePage.append(monster.render());
+function renderAllMonsters() {
+  monstersData.forEach(renderMonster);
+}
 
-    requestAnimationFrame(moveMonster);
+function renderMonster(monsterData) {
+  let monster = new Enemy(monsterData);
+  gamePage.append(monster.render());
 
-    function moveMonster() {
-      if (settings.isStarted) {
-        changeMonsterDirection();
-        changeMonsterPosition();
-        changeMonsterSpeed();
-        
+  requestAnimationFrame(moveMonster);
+
+  function moveMonster() {
+    if (settings.isStarted) {
+      changeMonsterDirection();
+      changeMonsterPosition();
+      changeMonsterSpeed();
+      checkMonsterForDamage();
+      checkMonsterForAliveness();
+
+      if (monster) {
         monster.move(monsterData.position);
-
         requestAnimationFrame(moveMonster);
-      }
+      }        
+    }
+  }
+
+  function changeMonsterDirection() {
+    if (monsterData.position < knightData.position) {
+      monsterData.isBack = true;
+    } else if (monsterData.position > knightData.position) {
+      monsterData.isBack = false;
     }
 
-    function changeMonsterDirection() {
-      if (monsterData.position < knightData.position) {
-        monsterData.isMoving = true;
-        monsterData.isBack = true;
-      } else if (monsterData.position > knightData.position + knightData.width) {
-        monsterData.isMoving = true;
-        monsterData.isBack = false;
+    monster.isBack = monsterData.isBack;
+  }
+
+  function changeMonsterPosition() {
+    if (monsterData.isMoving) {
+      if (monsterData.isBack) {
+        monsterData.position += monsterData.speed;
       } else {
-        monsterData.isMoving = false;
+        monsterData.position -= monsterData.speed;
       }
-
-      monster.isBack = monsterData.isBack;
-    }
-
-    function changeMonsterPosition() {
-      if (monsterData.isMoving) {
-        if (monsterData.isBack) {
-          monsterData.position += monsterData.speed;
-        } else {
-          monsterData.position -= monsterData.speed;
-        }
-      }      
-    }
-    
-    function changeMonsterSpeed() {
-      if (isKnightInTheMiddle() && knightData.isMoving) {
-        if (knightData.isBack) {
-          const difference = monsterData.position >= GAME_WIDTH / 2 + monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
-          monsterData.speed = Monster[monsterData.type].speed + difference;
-        } else {
-          const difference = monsterData.position <= GAME_WIDTH / 2 - monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
-          monsterData.speed = Monster[monsterData.type].speed + difference;
-        }
+    }      
+  }
+  
+  function changeMonsterSpeed() {
+    if (isKnightInTheMiddle() && knightData.isMoving) {
+      if (knightData.isBack) {
+        const difference = monsterData.position >= GAME_WIDTH / 2 + monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+        monsterData.speed = Monster[monsterData.type].speed + difference;
       } else {
-        monsterData.speed = Monster[monsterData.type].speed;
+        const difference = monsterData.position <= GAME_WIDTH / 2 - monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+        monsterData.speed = Monster[monsterData.type].speed + difference;
       }
+    } else {
+      monsterData.speed = Monster[monsterData.type].speed;
     }
+  }
 
-    function damageMonster() {
-      
+  function checkMonsterForAliveness() {
+    if (monsterData.healthLevel <= 0) {
+      setTimeout(removeMonster, MONSTERS_DYING_TIME);
     }
+  }
 
-    function isMonsterDamagedBySwordsHail() {
-      const swordsHailElement = gamePage.querySelector('.swords-hail');
-      
-      return isMonsterDamaged(swordsHailElement);
-    }
+  function removeMonster() {
+    monster.unrender();
+    monster = null;
 
-    function isMonsterDamagedBySwordsTrio() {
-      const allSwordsTrioElements = gamePage.querySelectorAll('.swords-trio');
+    createMonstersData(1, GAME_WIDTH);
+    renderMonster(monstersData[monstersData.length - 1]);
+  }
 
-      return allSwordsTrioElements.some(element => isMonsterDamaged(element));
-    }
+  function checkMonsterForDamage() {
+    skillDisplaysData.forEach(skillDisplay => {
+      if (isMonsterDamaged(skillDisplay)) {
+        damageMonster(skillDisplay.damage);
+        skillDisplay.damagedMonsters.push(monsterData);
+      }
+    });
+  }
 
-    function isMonsterDamaged(skill) {
-      const skillCoords = skill.getBoundingClientRect();
-      return monsterData.position <= skillCoords.right && monsterData.position + monsterData.width >= skillCoords.left;
-    }
+  function damageMonster(damage) {
+    monsterData.isDamaged = true;
+    monsterData.healthLevel -= damage;   
+    monster.healthLevel = monsterData.healthLevel;   
+  }
 
-    // function damageKnight() {
-    //   if (!skillsData["block"].isActive) {
-    //     // код 
-    //   }
-    // }
-  });
+  function isMonsterDamaged(skill) {
+    if (skill.damagedMonsters.includes(monsterData)) {
+      return;
+    } 
+
+    return monsterData.position <= skill.position + skill.width && monsterData.position + monsterData.width >= skill.position;
+  }
 }
 
 function createSkillsData() {
@@ -378,6 +397,7 @@ function createSkillsData() {
     skillsData[key] = Object.assign({}, Weapon[key]);
     skillsData[key].isActive = false;
     skillsData[key].isAvailable = true;
+    skillsData[key].damagedMonsters = [];
     skillsData[key].name = key;
   }
 }
@@ -387,63 +407,63 @@ function setSkillAvailability(skill, isAvailable) {
 }
 
 function renderSkills() {
+  skillsWrapper.innerHTML = '';
+  const skillsFragment = document.createDocumentFragment();
+
   weaponTypesArr.forEach(type => {
     const skill = new Skill(skillsData[type]);
-    skillsWrapper.append(skill.render());
+    skillsFragment.append(skill.render());
 
-    document.addEventListener('keydown', onSkillsKeyDown);
+    skill.bind();
 
-    function onSkillsKeyDown(evt) {
+    skill.onActivate = (evt) => {
       if (evt.key === skillsData[type].key) {
         if (skillsData[type].key === skillsData["swordsHail"].key) {
           useSwordsHail(knightData.isBack);
         }
 
         if (skillsData[type].key === skillsData["swordsTrio"].key) {
-          useSwordsTrio(knightData.isBack);
+          useSwordsTrio(knightData.isBack);  
         }
 
-        skill.activate(setSkillAvailability);
+        skill.activate();
+        skillsData[type].isAvailable = false;
         skillsData[type].isActive = true;
+        
+        setTimeout(() => {
+          skillsData[type].isAvailable = true;
+          skillsData[type].isActive = false;
+          skill.recharge();
+        }, skillsData[type].rechargeTime);
       }
     }
+
+    skillsWrapper.append(skillsFragment);
   });
-}
-
-function useSwordsHail(isBack) {
-  if (skillsData["swordsHail"].isAvailable) {
-    const skillDisplay = createElement(skillsData["swordsHail"].template);
-
-    let position = setSkillDisplayPosition(isBack, skillDisplay);
-    skillDisplay.style.left = `${position}px`;
-
-    gamePage.append(skillDisplay);
-
-    setTimeout(() => {skillDisplay.remove()}, SWORDS_HAIL_DURATION);
-  }  
 }
 
 function useSwordsTrio(isBack) {
   if (skillsData["swordsTrio"].isAvailable) {
-    const skillDisplay = createElement(skillsData["swordsTrio"].template);
-
-    let position = setSkillDisplayPosition(isBack, skillDisplay);
-    skillDisplay.style.left = `${position}px`;
-
-    gamePage.append(skillDisplay);
-
+    const data = createSkillDisplayData("swordsTrio", isBack);
+    const skillDisplay = new SkillDisplay(data);
+  
+    gamePage.append(skillDisplay.render(data.position));
+  
     requestAnimationFrame(moveSwordsTrio);
-    setTimeout(() => {skillDisplay.remove()}, SWORDS_TRIO_DURATION);
 
     function moveSwordsTrio() {
       if (skillDisplay && settings.isStarted) {
+        if (data.position > GAME_WIDTH) {
+          skillDisplay.unrender()
+        }
+
         if (isBack) {
-          position -= settings.speed;
+          data.position -= settings.speed;
         } else {
-          position += settings.speed;
+          data.position += settings.speed;
         }
         
-        skillDisplay.style.left = `${position}px`;
+        skillDisplay.move(data.position);
 
         requestAnimationFrame(moveSwordsTrio);
       }
@@ -451,14 +471,40 @@ function useSwordsTrio(isBack) {
   }  
 }
 
-function setSkillDisplayPosition(isBack, skillDisplay) {
+function useSwordsHail(isBack) {
+  if (skillsData["swordsHail"].isAvailable) {
+    const data = createSkillDisplayData("swordsHail", isBack);
+    console.log(data.position)
+    const skillDisplay = new SkillDisplay(data);
+  
+    gamePage.append(skillDisplay.render(data.position));
+
+    setTimeout(() => {skillDisplay.unrender()}, SWORDS_HAIL_DURATION);
+  }  
+}
+
+function createSkillDisplayData(type, isBack) {
+  const data = {
+    type: type,
+    width: skillDisplaysDefaultData[type].width,
+    position: setSkillDisplayPosition(skillDisplaysDefaultData[type].width, isBack),
+    template: skillDisplaysDefaultData[type].template,
+    damage: Weapon[type].damage,
+    isBack: isBack,
+    damagedMonsters: []
+  };
+
+  skillDisplaysData.push(data);
+
+  return skillDisplaysData[skillDisplaysData.length - 1];
+}
+
+function setSkillDisplayPosition(width, isBack) {
   let x = knightData.position;
   if (isBack) {
-    x -= skillDisplay.clientWidth + WEAPON_AND_KNIGHT_GAP * 2;
-    skillDisplay.style.transform = 'scale(-1, 1)';
+    x -= width + WEAPON_AND_KNIGHT_GAP * 2;
   } else {
     x += WEAPON_AND_KNIGHT_GAP;
-    skillDisplay.style.transform = 'none';
   }
 
   return x;
@@ -466,6 +512,19 @@ function setSkillDisplayPosition(isBack, skillDisplay) {
 
 function createIndicatorsData() {
   indicatorsData = Object.assign({}, indicatorsDefaultData);
+}
+
+function renderUserInfo() {
+  userInfo.innerHTML = '';
+
+  renderUserName();
+  renderIndicators();
+}
+
+function renderUserName() {
+  const userName = createElement(USER_NAME_TEMPLATE);
+  userName.textContent = settings.username;
+  userInfo.append(userName);
 }
 
 function renderIndicators() {
@@ -494,33 +553,54 @@ function getMonsterStartPosition() {
 
 class Knight {
   constructor(props) {
-    this._isAttack = false;
     this._element = null;
-    this._isMoving = props.isMoving;
     this._isBack = props.isBack;
-    this._speed = props.speed;
     this._healthLevel = props.healthLevel;
     this._magicLevel = props.magicLevel;
     this._position = props.position;
     this._className = props.className; 
-    this._width = props.width;
-    this._height = props.height;
     this._runGif = props.runGif;
     this._idleGif = props.idleGif;
+    
+    this._onRun = null;
+    this._onStop = null;
+
+    this._onKeyDown = this._onKeyDown.bind(this);
+    this._onKeyUp = this._onKeyUp.bind(this);
   }
 
   _changeDirection() {
-    if (this._isBack) {
-      this._element.style.transform = 'scale(-1, 1)';
-    } else {
-      this._element.style.transform = 'none';
+    if (typeof this._isBack === 'boolean') {
+      if (this._isBack) {
+        this._element.style.transform = 'scale(-1, 1)';
+      } else {
+        this._element.style.transform = 'none';
+      }
+    }    
+  }
+  
+  _onKeyDown(evt) {
+    if (typeof this._onRun === 'function') {
+      this._onRun(evt);
+    }
+  } 
+
+  _onKeyUp(evt) {
+    if (typeof this._onStop === 'function') {
+      this._onStop(evt);
     }
   }
 
+  set onRun(f) {
+    this._onRun = f;
+  }
+
+  set onStop(f) {
+    this._onStop = f;
+  }
+
   set isBack(value) {
-    if (typeof value === 'boolean') {
-      this._isBack = value;
-    }
+    this._isBack = value;
   }
 
   get element() {
@@ -543,42 +623,49 @@ class Knight {
     this._position = newPos;
     this._element.style.left = `${this._position}px`;
     this.isMoving = true;
-    this._element.style.backgroundImage = this._runGif;
+    this._element.style.backgroundImage = `url(${this._runGif})`;
     this._changeDirection();
   }
 
   stop() {
     this.isMoving = false;
-    this._element.style.backgroundImage = this._idleGif;
+    this._element.style.backgroundImage = `url(${this._idleGif})`;
+  }
+
+  bind() {
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('keyup', this._onKeyUp);
   }
 }
 
 class Enemy {
   constructor(props) {
-    this._damage = props.damage;
     this._element = null;
     this._isAttack = false;
     this._isBack = false;
     this._position = props.position;
     this._width = props.width;
     this._height = props.height;
-    this._speed = props.speed;
     this._healthLevel = props.healthLevel;    
     this._className = props.className;
   }
 
   _changeDirection() {
-    if (this._isBack) {
-      this._element.style.transform = 'scale(-1, 1)';
-    } else {
-      this._element.style.transform = 'none';
+    if (typeof this._isBack === 'boolean') {
+      if (this._isBack) {
+        this._element.style.transform = 'scale(-1, 1)';
+      } else {
+        this._element.style.transform = 'none';
+      }
     }
   }
 
   set isBack(value) {
-    if (typeof value === 'boolean') {
-      this._isBack = value;
-    }
+    this._isBack = value;
+  }
+
+  set healthLevel(value) {
+    this._healthLevel = value;
   }
 
   get element() {
@@ -608,19 +695,26 @@ class Enemy {
 
 class Skill {
   constructor(props) {
+    this._key = props.key;
     this._name = props.name;
-    this._rechargeTime = props.rechargeTime;
-    this._damage = props.damage;
     this._iconURL = props.iconURL;
-    this._isAvailable = true;
     this._element = null;
-    this._recharge = this._recharge.bind(this);
+
+    this._onActivate = null;
+
+    this._onActivateKeydown = this._onActivateKeydown.bind(this);
   }
-  
-  _recharge(callback) {
-    this._element.style.filter = 'none';
-    this._isAvailable = true;
-    callback(this._name, this._isAvailable);
+
+  _onActivateKeydown(evt) {
+    if (typeof this._onActivate === `function`) {
+      if (evt.key === this._key.toString()) {
+        this._onActivate(evt);
+      }
+    }
+  }
+
+  set onActivate(f) {
+    this._onActivate = f;
   }
 
   get template() {
@@ -636,15 +730,51 @@ class Skill {
     this._element = null;
   }
 
-  activate(callback) {
-    if (this._isAvailable) {
-      this._isAvailable = false;
-      callback(this._name, this._isAvailable);
+  recharge() {
+    this._element.style.filter = 'grayscale(0)';
+  }
 
-      this._element.style.filter = 'grayscale(1)';
+  activate() {
+    this._element.style.filter = 'grayscale(1)';
+  }
 
-      setTimeout(this._recharge, this._rechargeTime, callback);
-    }
+  bind() {
+    document.addEventListener(`keydown`, this._onActivateKeydown);
+  }
+}
+
+class SkillDisplay {
+  constructor(props) {
+    this._element = null;
+    this._position = props.position;
+    this._template = props.template;
+    this._isBack = props.isBack;
+  }
+
+  get template() {
+    return this._template;
+  }
+
+  render(position) {
+    this._element = createElement(this.template);
+    this._element.style.left = `${this._position}px`;
+    this._element.style.transform = this._isBack ? 'scale(-1, 1)' : 'none';
+    
+    return this._element;
+  }
+
+  unrender() {
+    if (this._element) {
+      this._element.remove();
+      this._element = null;
+    }    
+  }
+
+  move(newPos) {
+    if (this._element) {
+      this._position = newPos;
+      this._element.style.left = `${this._position}px`;
+    }    
   }
 }
 
