@@ -4,7 +4,7 @@ const BACKGROUND_SIZE = 9558,
   WEAPON_AND_KNIGHT_GAP = 70,
   SWORDS_TRIO_DURATION = 18000,
   SWORDS_HAIL_DURATION = 2600,
-  MONSTERS_DYING_TIME = 1000,
+  MONSTERS_DYING_TIME = 700,
   USER_NAME_TEMPLATE = '<div class="user-info"></div>';
 
 const startPage = document.querySelector('.screen-start'),
@@ -96,11 +96,13 @@ const Weapon = {
 const skillDisplaysDefaultData = {
   swordsTrio: {
     width: 90,
-    template: `<div class="swords-trio"></div>`
+    template: `<div class="swords-trio"></div>`,
+    speed: 1.7
   },
   swordsHail: {
     width: 191,
-    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`
+    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`,
+    speed: 0
   }
 }
 
@@ -343,10 +345,10 @@ function renderMonster(monsterData) {
   function changeMonsterSpeed() {
     if (isKnightInTheMiddle() && knightData.isMoving) {
       if (knightData.isBack) {
-        const difference = monsterData.position >= GAME_WIDTH / 2 + monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+        const difference = monsterData.position >= knightData.position ? -knightDefaultData.speed : knightDefaultData.speed;
         monsterData.speed = Monster[monsterData.type].speed + difference;
       } else {
-        const difference = monsterData.position <= GAME_WIDTH / 2 - monsterData.width ? -knightDefaultData.speed : knightDefaultData.speed;
+        const difference = monsterData.position <= knightData.position ? -knightDefaultData.speed : knightDefaultData.speed;
         monsterData.speed = Monster[monsterData.type].speed + difference;
       }
     } else {
@@ -474,7 +476,6 @@ function useSwordsTrio(isBack) {
 function useSwordsHail(isBack) {
   if (skillsData["swordsHail"].isAvailable) {
     const data = createSkillDisplayData("swordsHail", isBack);
-    console.log(data.position)
     const skillDisplay = new SkillDisplay(data);
   
     gamePage.append(skillDisplay.render(data.position));
@@ -491,6 +492,7 @@ function createSkillDisplayData(type, isBack) {
     template: skillDisplaysDefaultData[type].template,
     damage: Weapon[type].damage,
     isBack: isBack,
+    speed: skillDisplaysDefaultData[type].speed,
     damagedMonsters: []
   };
 
@@ -502,7 +504,7 @@ function createSkillDisplayData(type, isBack) {
 function setSkillDisplayPosition(width, isBack) {
   let x = knightData.position;
   if (isBack) {
-    x -= width + WEAPON_AND_KNIGHT_GAP * 2;
+    x -= WEAPON_AND_KNIGHT_GAP * 2;
   } else {
     x += WEAPON_AND_KNIGHT_GAP;
   }
