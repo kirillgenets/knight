@@ -4,8 +4,8 @@ const BACKGROUND_SIZE = 9558,
   WEAPON_AND_KNIGHT_GAP = 70,
   SWORDS_TRIO_DURATION = 18000,
   SWORDS_HAIL_DURATION = 2600,
-  MONSTERS_DYING_TIME = 700,
-  USER_NAME_TEMPLATE = '<div class="user-info"></div>';
+  USER_NAME_TEMPLATE = '<div class="user-info"></div>',
+  MONSTERS_ATTACK_SPEED = 1000;
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -197,7 +197,8 @@ function createKnightData() {
     runGif: knightDefaultData.runGif,
     idleGif: knightDefaultData.idleGif,
     blockGif: knightDefaultData.blockGif,
-    isMoving: false
+    isMoving: false,
+    isDamaged: false
   }
 }
 
@@ -247,7 +248,34 @@ function renderKnight() {
       knight.move(knightData.position);
     }
 
+    checkKnightForDamage();
+    checkKnightForAliveness();
+
     requestAnimationFrame(moveKnight);
+  }
+
+  function checkKnightForDamage() {
+    monstersData.forEach(monsterData => {
+      if (isKnightDamaged(monsterData) && !monsterData.isAttack) {
+        damageKnight(monsterData.damage);
+        changeMonsterAttackStatus(monsterData);        
+      }
+    });
+  }
+
+  function checkKnightForAliveness() {
+    if (knightData.healthLevel <= 0) {
+      console.log('dead');
+    }
+  }
+
+  function damageKnight(damage) {
+    knightData.isDamaged = true;
+    knightData.healthLevel -= damage; 
+  }
+
+  function isKnightDamaged(monster) {
+    return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
   }
 
   function changeKnightPosition() {
@@ -292,7 +320,8 @@ function createMonstersData(count, startPos = getMonsterStartPosition()) {
       position: startPos,
       isBack: false,
       isMoving: true,
-      isDamaged: false
+      isDamaged: false,
+      isAttack: false
     });
   }  
 }
@@ -329,7 +358,9 @@ function renderMonster(monsterData) {
       monsterData.isBack = false;
     }
 
-    monster.isBack = monsterData.isBack;
+    if (monster) {
+      monster.isBack = monsterData.isBack;
+    }
   }
 
   function changeMonsterPosition() {
@@ -358,12 +389,15 @@ function renderMonster(monsterData) {
 
   function checkMonsterForAliveness() {
     if (monsterData.healthLevel <= 0) {
-      setTimeout(removeMonster, MONSTERS_DYING_TIME);
+      removeMonster();
     }
   }
 
   function removeMonster() {
-    monster.unrender();
+    if (monster) {
+      monster.unrender();
+    }
+
     monster = null;
 
     createMonstersData(1, GAME_WIDTH);
@@ -372,26 +406,29 @@ function renderMonster(monsterData) {
 
   function checkMonsterForDamage() {
     skillDisplaysData.forEach(skillDisplay => {
-      if (isMonsterDamaged(skillDisplay)) {
+      if (isMonsterDamaged(skillDisplay) && !skillDisplay.damagedMonsters.includes(monster)) {
         damageMonster(skillDisplay.damage);
-        skillDisplay.damagedMonsters.push(monsterData);
+        skillDisplay.damagedMonsters.push(monster);
       }
     });
   }
 
   function damageMonster(damage) {
     monsterData.isDamaged = true;
-    monsterData.healthLevel -= damage;   
-    monster.healthLevel = monsterData.healthLevel;   
+    monsterData.healthLevel -= damage;
   }
 
   function isMonsterDamaged(skill) {
-    if (skill.damagedMonsters.includes(monsterData)) {
-      return;
-    } 
-
     return monsterData.position <= skill.position + skill.width && monsterData.position + monsterData.width >= skill.position;
   }
+}
+
+function changeMonsterAttackStatus(monsterData) {
+  monsterData.isAttack = true;
+
+  setTimeout(() => {
+    monsterData.isAttack = false;
+  }, MONSTERS_ATTACK_SPEED);
 }
 
 function createSkillsData() {
@@ -448,7 +485,7 @@ function useSwordsTrio(isBack) {
   if (skillsData["swordsTrio"].isAvailable) {
     const data = createSkillDisplayData("swordsTrio", isBack);
     const skillDisplay = new SkillDisplay(data);
-  
+
     gamePage.append(skillDisplay.render(data.position));
   
     requestAnimationFrame(moveSwordsTrio);
@@ -460,9 +497,9 @@ function useSwordsTrio(isBack) {
         }
 
         if (isBack) {
-          data.position -= settings.speed;
+          data.position -= data.speed;
         } else {
-          data.position += settings.speed;
+          data.position += data.speed;
         }
         
         skillDisplay.move(data.position);
@@ -557,8 +594,6 @@ class Knight {
   constructor(props) {
     this._element = null;
     this._isBack = props.isBack;
-    this._healthLevel = props.healthLevel;
-    this._magicLevel = props.magicLevel;
     this._position = props.position;
     this._className = props.className; 
     this._runGif = props.runGif;
@@ -648,7 +683,6 @@ class Enemy {
     this._position = props.position;
     this._width = props.width;
     this._height = props.height;
-    this._healthLevel = props.healthLevel;    
     this._className = props.className;
   }
 
@@ -664,10 +698,6 @@ class Enemy {
 
   set isBack(value) {
     this._isBack = value;
-  }
-
-  set healthLevel(value) {
-    this._healthLevel = value;
   }
 
   get element() {
