@@ -125,7 +125,6 @@ const knightDefaultData = {
   height: 85,
   speed: 1.5,
   healthLevel: 100,
-  magicLevel: 100,
   startPos: 9,
   runGif: './assets/img/run.gif',
   idleGif: './assets/img/idle.gif',
@@ -189,7 +188,6 @@ function createKnightData() {
   knightData = {
     className: knightDefaultData.className,
     healthLevel: knightDefaultData.healthLevel,
-    magicLevel: knightDefaultData.magicLevel,
     speed: knightDefaultData.speed,
     width: knightDefaultData.width,
     height: knightDefaultData.height,
@@ -272,10 +270,8 @@ function renderKnight() {
   function damageKnight(damage) {
     knightData.isDamaged = true;
     knightData.healthLevel -= damage; 
-  }
 
-  function isKnightDamaged(monster) {
-    return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
+    indicatorsData["xp"].level = knightData.healthLevel;
   }
 
   function changeKnightPosition() {
@@ -289,6 +285,10 @@ function renderKnight() {
       knightData.position = 0;
     }
   }
+}
+
+function isKnightDamaged(monster) {
+  return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
 }
 
 function isKnightInTheMiddle() {
@@ -426,8 +426,12 @@ function renderMonster(monsterData) {
 function changeMonsterAttackStatus(monsterData) {
   monsterData.isAttack = true;
 
-  setTimeout(() => {
+  const attackTimeout = setTimeout(() => {
     monsterData.isAttack = false;
+
+    if (isKnightDamaged(monsterData)) {
+      clearTimeout(attackTimeout);
+    }
   }, MONSTERS_ATTACK_SPEED);
 }
 
@@ -568,8 +572,19 @@ function renderUserName() {
 
 function renderIndicators() {
   indicatorTypesArr.forEach(type => {
-    const indicator = new Indicator(indicatorsData[type]);
+    const indicatorData = indicatorsData[type];
+    const indicator = new Indicator(indicatorData);
     userInfo.append(indicator.render());
+
+    requestAnimationFrame(changeIndicatorLevel);
+
+    function changeIndicatorLevel() {
+      if (settings.isStarted) {
+        indicator.change(indicatorData.level);
+
+        requestAnimationFrame(changeIndicatorLevel);
+      }
+    }
   });
 }
 
@@ -812,6 +827,7 @@ class SkillDisplay {
 
 class Indicator {
   constructor(props) {
+    this._element = null;
     this._color = props.color;
     this._level = props.level;
     this._type = props.type;
@@ -836,8 +852,11 @@ class Indicator {
     this._element = null;
   }
 
-  decrease(value) {
-    this._level -= value;
-    this._element.firstChild.style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(255,255,255,1) ${this._level}%)`;
+  change(value) {
+    if (value >= 0) {
+      this._level = value;
+      this._element.querySelector('.score-value').style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(0,0,0,1) ${this._level}%)`;
+      this._element.querySelector('span').textContent = this._level;
+    }    
   }
 }
