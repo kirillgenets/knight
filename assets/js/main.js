@@ -288,7 +288,9 @@ function renderKnight() {
 }
 
 function isKnightDamaged(monster) {
-  return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
+  if (monster.isAlive) {
+    return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
+  }
 }
 
 function isKnightInTheMiddle() {
@@ -321,7 +323,8 @@ function createMonstersData(count, startPos = getMonsterStartPosition()) {
       isBack: false,
       isMoving: true,
       isDamaged: false,
-      isAttack: false
+      isAttack: false,
+      isAlive: true
     });
   }  
 }
@@ -399,6 +402,7 @@ function renderMonster(monsterData) {
     }
 
     monster = null;
+    monsterData.isAlive = false;
 
     createMonstersData(1, GAME_WIDTH);
     renderMonster(monstersData[monstersData.length - 1]);
