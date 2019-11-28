@@ -309,7 +309,7 @@ function renderKnight() {
 }
 
 function isKnightDamaged(monster) {
-  if (monster.isAlive) {
+  if (monster.isAlive && !skillsData["block"].isActive) {
     return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
   }
 }
@@ -420,11 +420,16 @@ function renderMonster(monsterData) {
   function removeMonster() {
     if (monster) {
       monster.unrender();
+      scoreData["kills"].value++;
     }
 
     monster = null;
-    monsterData.isAlive = false;
+    monsterData.isAlive = false;   
 
+    addNewMonster();
+  }
+
+  function addNewMonster() {
     createMonstersData(1, gameWidth);
     renderMonster(monstersData[monstersData.length - 1]);
   }
@@ -498,10 +503,26 @@ function renderSkills() {
       if (evt.key === skillsData[type].key) {
         if (skillsData[type].key === skillsData["swordsHail"].key) {
           useSwordsHail(knightData.isBack);
+          
+          setTimeout(() => {
+            skillsData[type].isAvailable = true;
+            skillsData[type].isActive = false;
+            skill.recharge();
+          }, skillsData[type].rechargeTime);
         }
 
         if (skillsData[type].key === skillsData["swordsTrio"].key) {
           useSwordsTrio(knightData.isBack);  
+
+          setTimeout(() => {
+            skillsData[type].isAvailable = true;
+            skillsData[type].isActive = false;
+            skill.recharge();
+          }, skillsData[type].rechargeTime);
+        }
+
+        if (skillsData[type].key === skillsData["block"].key || skillsData[type].key === skillsData["sword"].key) {
+          document.addEventListener('keyup', onSkillKeyUp);
         }
 
         if (skillsData[type].isAvailable) {
@@ -511,12 +532,12 @@ function renderSkills() {
         skill.activate();
         skillsData[type].isAvailable = false;
         skillsData[type].isActive = true;
-        
-        setTimeout(() => {
-          skillsData[type].isAvailable = true;
-          skillsData[type].isActive = false;
-          skill.recharge();
-        }, skillsData[type].rechargeTime);
+      }
+
+      function onSkillKeyUp() {
+        skillsData[type].isAvailable = true;
+        skillsData[type].isActive = false;
+        skill.recharge();
       }
     }
 
@@ -571,7 +592,7 @@ function createSkillDisplayData(type, isBack) {
   const data = {
     type: type,
     width: skillDisplaysDefaultData[type].width,
-    position: setSkillDisplayPosition(skillDisplaysDefaultData[type].width, isBack),
+    position: setSkillDisplayPosition(isBack),
     template: skillDisplaysDefaultData[type].template,
     damage: Weapon[type].damage,
     isBack: isBack,
@@ -585,7 +606,7 @@ function createSkillDisplayData(type, isBack) {
   return skillDisplaysData[skillDisplaysData.length - 1];
 }
 
-function setSkillDisplayPosition(width, isBack) {
+function setSkillDisplayPosition(isBack) {
   let x = knightData.position;
   if (isBack) {
     x -= WEAPON_AND_KNIGHT_GAP * 2;
@@ -632,11 +653,21 @@ function renderIndicators() {
     }
 
     function rechargeIndicator() {
-      indicatorData.level += indicatorData.rechargePerSecond;
+      if (isNeedToRecharge()) {
+        indicatorData.level += indicatorData.rechargePerSecond;
 
-      if (indicatorData.level > 100) {
-        indicatorData.level = 100;
+        if (indicatorData.level > 100) {
+          indicatorData.level = 100;
+        }
+      }      
+    }
+
+    function isNeedToRecharge() {
+      if (type === 'xp') {
+        return true;
       }
+
+      return !weaponTypesArr.some(type => skillsData[type].isActive);
     }
   });
 }
@@ -657,6 +688,10 @@ function renderScore() {
       requestAnimationFrame(changeCurrentTime);
     }
 
+    if (type === 'kills') {
+      requestAnimationFrame(changeCurrentKillsCount);
+    }
+
     function changeCurrentTime() {
       if (settings.isStarted) {
         let timeStr = '';
@@ -673,6 +708,14 @@ function renderScore() {
       }
     
       requestAnimationFrame(changeCurrentTime);
+    }
+
+    function changeCurrentKillsCount() {
+      if (settings.isStarted) {
+        score.change(scoreData["kills"].value);
+      }
+
+      requestAnimationFrame(changeCurrentKillsCount);
     }
   });
 }
