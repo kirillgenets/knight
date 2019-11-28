@@ -13,12 +13,11 @@ const startPage = document.querySelector('.screen-start'),
   nameField = startForm.querySelector('.start-name'),
   startButton = startForm.querySelector('.start-submit'),
   gamePage = document.querySelector('.screen-game'),
-  scoreElement = gamePage.querySelector('.kills-value'),
-  userInfo = gamePage.querySelector('.game-panel-user');
+  userInfo = gamePage.querySelector('.game-panel-user'),
   pauseModal = gamePage.querySelector('.pause'),
-  skillsWrapper = gamePage.querySelector('.game-panel-skills');
-  timeElement = gamePage.querySelector('.timer-value'),
+  skillsWrapper = gamePage.querySelector('.game-panel-skills'),
   rankingPage = document.querySelector('.screen-ranking'),
+  scoreWrapper = gamePage.querySelector('.game-panel-scores')
   rankingTable = rankingPage.querySelector('.ranking-table'),
   playAgainButton = rankingPage.querySelector('.play-again');
 
@@ -29,8 +28,6 @@ const settings = {
   pauseTime: '',
   backgroundPosition: BACKGROUND_SIZE,
   speed: 1.5,
-  time: '',
-  score: 0
 }
 
 const Monster = {
@@ -139,7 +136,7 @@ const scoreDefaultData = {
   timer: {
     type: 'timer',
     description: 'Time',
-    value: 0
+    value: '00:00'
   },
   kills: {
     type: 'kills',
@@ -153,11 +150,13 @@ let gameWidth = document.documentElement.clientWidth;
 const monsterTypesArr = Object.keys(Monster);
 const weaponTypesArr = Object.keys(Weapon);
 const indicatorTypesArr = Object.keys(indicatorsDefaultData);
+const scoreTypesArr = Object.keys(scoreDefaultData);
 
 const skillsData = {};
 const monstersData = [];
 const skillDisplaysData = [];
 let indicatorsData = {};
+let scoreData = {};
 let knightData = {};
 
 rankingPage.classList.add('hidden');
@@ -185,10 +184,8 @@ function initGame() {
     
     createStartData();
     renderAllObjects();
-
-    requestAnimationFrame(drawCurrentScore);
-
-    playGame();
+    
+    settings.startTime = Date.now();
   }  
 }
 
@@ -197,6 +194,7 @@ function createStartData() {
   createMonstersData(START_MONSTERS_COUNT);
   createSkillsData();
   createIndicatorsData();
+  createScoreData();
 }
 
 function renderAllObjects() {
@@ -204,20 +202,7 @@ function renderAllObjects() {
   renderAllMonsters();
   renderSkills();
   renderUserInfo();
-}
-
-function drawCurrentScore() {
-	let timeStr = '';
-
-	const currentTime = Math.floor((new Date().getTime() - settings.startTime) / 1000);
-	const currentTimeInMin = Math.floor(currentTime / 60);
-	const currentTimeInSec = currentTime < 60 ? currentTime : currentTime - (60 * currentTimeInMin);
-
-	timeStr += currentTimeInMin <= 9 ? `0${currentTimeInMin}:` : `${currentTimeInMin}:`;
-	timeStr += currentTimeInSec <= 9 ? `0${currentTimeInSec}` : currentTimeInSec;
-
-  timeElement.textContent = timeStr;
-  settings.time = timeStr;
+  renderScore();
 }
 
 function createKnightData() {
@@ -656,6 +641,42 @@ function renderIndicators() {
   });
 }
 
+function createScoreData() {
+  scoreData = Object.assign({}, scoreDefaultData);
+}
+
+function renderScore() {
+  scoreWrapper.innerHTML = '';
+  
+  scoreTypesArr.forEach(type => {
+    const data = scoreData[type];    
+    const score = new Score(data);
+    scoreWrapper.append(score.render());
+
+    if (type === 'timer') {
+      requestAnimationFrame(changeCurrentTime);
+    }
+
+    function changeCurrentTime() {
+      if (settings.isStarted) {
+        let timeStr = '';
+    
+        const currentTime = Math.floor((Date.now() - settings.startTime) / 1000);
+        const currentTimeInMin = Math.floor(currentTime / 60);
+        const currentTimeInSec = currentTime < 60 ? currentTime : currentTime - (60 * currentTimeInMin);
+    
+        timeStr += currentTimeInMin <= 9 ? `0${currentTimeInMin}:` : `${currentTimeInMin}:`;
+        timeStr += currentTimeInSec <= 9 ? `0${currentTimeInSec}` : currentTimeInSec;
+    
+        data.value = timeStr;
+        score.change(timeStr);
+      }
+    
+      requestAnimationFrame(changeCurrentTime);
+    }
+  });
+}
+
 function createElement(template) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;  
@@ -929,7 +950,7 @@ class Score {
   }
 
   get template() {
-    return `<div class="${this._type}">${this._description}: <span class="${this._type}-value"></span></div>`;
+    return `<div class="${this._type}">${this._description}: <span class="${this._type}-value">${this._value}</span></div>`;
   }
 
   render() {
@@ -943,6 +964,6 @@ class Score {
 
   change(value) {
     this._value = value;
-    this._element.querySelector(`${this._type}-value`).textContent = value;
+    this._element.querySelector(`.${this._type}-value`).textContent = value;
   }
 }
