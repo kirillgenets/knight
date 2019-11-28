@@ -1,12 +1,12 @@
 const BACKGROUND_SIZE = 9558,
   START_MONSTERS_COUNT = 3,
-  GAME_WIDTH = document.documentElement.clientWidth,
   WEAPON_AND_KNIGHT_GAP = 70,
   SWORDS_TRIO_DURATION = 18000,
   SWORDS_HAIL_DURATION = 2600,
   USER_NAME_TEMPLATE = '<div class="user-info"></div>',
   MONSTERS_ATTACK_SPEED = 1000
-  INDICATORS_RECHARGE_TIME = 1000;
+  INDICATORS_RECHARGE_TIME = 1000,
+  IMG_PATH = './assets/img/';
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -41,7 +41,7 @@ const Monster = {
     damage: 2,
     healthLevel: 15,
     speed: 0.7,
-    runGif: './assets/img/dog-run.gif'
+    runGif: 'dog-run.gif'
   },
   elf: {
     className: 'monster-elf',
@@ -50,7 +50,7 @@ const Monster = {
     damage: 5,
     healthLevel: 30,
     speed: 0.5,
-    runGif: './assets/img/elf-run.gif'
+    runGif: 'elf-run.gif'
   },
   grinch: {
     className: 'monster-grinch',
@@ -59,7 +59,7 @@ const Monster = {
     damage: 10,
     healthLevel: 60,
     speed: 0.2,
-    runGif: './assets/img/grinch-run.gif'
+    runGif: 'grinch-run.gif'
   }
 };
 
@@ -69,28 +69,28 @@ const Weapon = {
     rechargeTime: 0,
     magicLevelConsumption: 0,
     damage: 15,
-    iconURL: './assets/img/skill-sword.png'
+    iconURL: 'skill-sword.png'
   },
   block: {
     key: '2',
     rechargeTime: 0,
     magicLevelConsumption: 5,
     damage: 0,
-    iconURL: './assets/img/skill-shield.png'
+    iconURL: 'skill-shield.png'
   },
   swordsTrio: {
     key: '3',
     rechargeTime: 3000,
     magicLevelConsumption: 10,
     damage: 40,
-    iconURL: './assets/img/skill-sword-3.png'    
+    iconURL: 'skill-sword-3.png'    
   },
   swordsHail: {
     key: '4',
     rechargeTime: 15000,
     magicLevelConsumption: 30,
     damage: 100,
-    iconURL: './assets/img/skill-sword-8.png',    
+    iconURL: 'skill-sword-8.png',    
   },
 }
 
@@ -129,11 +129,13 @@ const knightDefaultData = {
   speed: 1.5,
   healthLevel: 100,
   startPos: 9,
-  runGif: './assets/img/run.gif',
-  idleGif: './assets/img/idle.gif',
-  blockGif: './assets/img/block.gif',
+  runGif: 'run.gif',
+  idleGif: 'idle.gif',
+  blockGif: 'block.gif',
   isBack: false
 }
+
+let gameWidth = document.documentElement.clientWidth;
 
 const monsterTypesArr = Object.keys(Monster);
 const weaponTypesArr = Object.keys(Weapon);
@@ -297,7 +299,7 @@ function isKnightDamaged(monster) {
 }
 
 function isKnightInTheMiddle() {
-  return knightData.position === GAME_WIDTH / 2 - knightData.width;
+  return knightData.position === gameWidth / 2 - knightData.width;
 }
 
 function moveBackground() {
@@ -407,7 +409,7 @@ function renderMonster(monsterData) {
     monster = null;
     monsterData.isAlive = false;
 
-    createMonstersData(1, GAME_WIDTH);
+    createMonstersData(1, gameWidth);
     renderMonster(monstersData[monstersData.length - 1]);
   }
 
@@ -478,10 +480,13 @@ function renderSkills() {
           useSwordsTrio(knightData.isBack);  
         }
 
+        if (skillsData[type].isAvailable) {
+          indicatorsData["mp"].level -= skillsData[type].magicLevelConsumption;
+        }
+
         skill.activate();
         skillsData[type].isAvailable = false;
         skillsData[type].isActive = true;
-        indicatorsData["mp"].level -= skillsData[type].magicLevelConsumption;
         
         setTimeout(() => {
           skillsData[type].isAvailable = true;
@@ -506,7 +511,7 @@ function useSwordsTrio(isBack) {
 
     function moveSwordsTrio() {
       if (skillDisplay && settings.isStarted) {
-        if (data.position > GAME_WIDTH) {
+        if (data.position > gameWidth) {
           skillDisplay.unrender()
         }
 
@@ -699,13 +704,13 @@ class Knight {
     this._position = newPos;
     this._element.style.left = `${this._position}px`;
     this.isMoving = true;
-    this._element.style.backgroundImage = `url(${this._runGif})`;
+    this._element.style.backgroundImage = `url(${IMG_PATH}${this._runGif})`;
     this._changeDirection();
   }
 
   stop() {
     this.isMoving = false;
-    this._element.style.backgroundImage = `url(${this._idleGif})`;
+    this._element.style.backgroundImage = `url(${IMG_PATH}${this._idleGif})`;
   }
 
   bind() {
@@ -789,7 +794,7 @@ class Skill {
   }
 
   get template() {
-    return `<img src="${this._iconURL}" alt="skill">`;
+    return `<img src="${IMG_PATH}${this._iconURL}" alt="skill">`;
   }
 
   render() {
@@ -826,7 +831,7 @@ class SkillDisplay {
     return this._template;
   }
 
-  render(position) {
+  render() {
     this._element = createElement(this.template);
     this._element.style.left = `${this._position}px`;
     this._element.style.transform = this._isBack ? 'scale(-1, 1)' : 'none';
