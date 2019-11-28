@@ -584,6 +584,7 @@ function useSwordsHail(isBack) {
     setTimeout(() => {
       skillDisplay.unrender();
       data.isAvailable = false;
+      data.isActive = false;
     }, SWORDS_HAIL_DURATION);
   }  
 }
