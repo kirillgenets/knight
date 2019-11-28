@@ -135,6 +135,19 @@ const knightDefaultData = {
   isBack: false
 }
 
+const scoreDefaultData = {
+  timer: {
+    type: 'timer',
+    description: 'Time',
+    value: 0
+  },
+  kills: {
+    type: 'kills',
+    description: 'Killed',
+    value: 0
+  }
+}
+
 let gameWidth = document.documentElement.clientWidth;
 
 const monsterTypesArr = Object.keys(Monster);
@@ -172,6 +185,10 @@ function initGame() {
     
     createStartData();
     renderAllObjects();
+
+    requestAnimationFrame(drawCurrentScore);
+
+    playGame();
   }  
 }
 
@@ -187,6 +204,20 @@ function renderAllObjects() {
   renderAllMonsters();
   renderSkills();
   renderUserInfo();
+}
+
+function drawCurrentScore() {
+	let timeStr = '';
+
+	const currentTime = Math.floor((new Date().getTime() - settings.startTime) / 1000);
+	const currentTimeInMin = Math.floor(currentTime / 60);
+	const currentTimeInSec = currentTime < 60 ? currentTime : currentTime - (60 * currentTimeInMin);
+
+	timeStr += currentTimeInMin <= 9 ? `0${currentTimeInMin}:` : `${currentTimeInMin}:`;
+	timeStr += currentTimeInSec <= 9 ? `0${currentTimeInSec}` : currentTimeInSec;
+
+  timeElement.textContent = timeStr;
+  settings.time = timeStr;
 }
 
 function createKnightData() {
@@ -446,6 +477,14 @@ function changeMonsterAttackStatus(monsterData) {
   }, MONSTERS_ATTACK_SPEED);
 }
 
+function getRandomMonsterType() {  
+  return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
+}
+
+function getMonsterStartPosition() {
+  return Math.random() * (gamePage.clientWidth - gamePage.clientWidth / 2) + gamePage.clientWidth / 2;
+}
+
 function createSkillsData() {
   for (key in Weapon) {
     skillsData[key] = Object.assign({}, Weapon[key]);
@@ -622,14 +661,6 @@ function createElement(template) {
   wrapper.innerHTML = template;  
   
   return wrapper.firstChild;
-}
-
-function getRandomMonsterType() {  
-  return monsterTypesArr[Math.floor(Math.random() * monsterTypesArr.length)];
-}
-
-function getMonsterStartPosition() {
-  return Math.random() * (gamePage.clientWidth - gamePage.clientWidth / 2) + gamePage.clientWidth / 2;
 }
 
 // КЛАССЫ
@@ -887,5 +918,31 @@ class Indicator {
       this._element.querySelector('.score-value').style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(0,0,0,1) ${this._level}%)`;
       this._element.querySelector('span').textContent = this._level;
     }    
+  }
+}
+
+class Score {
+  constructor(props) {
+    this._type = props.type;
+    this._value = props.value;
+    this._description = props.description;
+  }
+
+  get template() {
+    return `<div class="${this._type}">${this._description}: <span class="${this._type}-value"></span></div>`;
+  }
+
+  render() {
+    return this._element = createElement(this.template);
+  }
+
+  unrender() {
+    this._element.remove();
+    this._element = null;
+  }
+
+  change(value) {
+    this._value = value;
+    this._element.querySelector(`${this._type}-value`).textContent = value;
   }
 }
