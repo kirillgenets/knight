@@ -5,7 +5,8 @@ const BACKGROUND_SIZE = 9558,
   SWORDS_TRIO_DURATION = 18000,
   SWORDS_HAIL_DURATION = 2600,
   USER_NAME_TEMPLATE = '<div class="user-info"></div>',
-  MONSTERS_ATTACK_SPEED = 1000;
+  MONSTERS_ATTACK_SPEED = 1000
+  INDICATORS_RECHARGE_TIME = 1000;
 
 const startPage = document.querySelector('.screen-start'),
   startForm = startPage.querySelector('form'),
@@ -110,12 +111,14 @@ const indicatorsDefaultData = {
   xp: {
     type: 'xp',
     color: '#9f000a',
-    level: 100
+    level: 100,
+    rechargePerSecond: 2
   },
   mp: {
     type: 'mp',
     color: '#004bb8',
-    level: 100
+    level: 100,
+    rechargePerSecond: 5
   }
 }
 
@@ -423,7 +426,9 @@ function renderMonster(monsterData) {
   }
 
   function isMonsterDamaged(skill) {
-    return monsterData.position <= skill.position + skill.width && monsterData.position + monsterData.width >= skill.position;
+    if (skill.isAvailable) {
+      return monsterData.position <= skill.position + skill.width && monsterData.position + monsterData.width >= skill.position;
+    }
   }
 }
 
@@ -476,6 +481,7 @@ function renderSkills() {
         skill.activate();
         skillsData[type].isAvailable = false;
         skillsData[type].isActive = true;
+        indicatorsData["mp"].level -= skillsData[type].magicLevelConsumption;
         
         setTimeout(() => {
           skillsData[type].isAvailable = true;
@@ -525,7 +531,10 @@ function useSwordsHail(isBack) {
   
     gamePage.append(skillDisplay.render(data.position));
 
-    setTimeout(() => {skillDisplay.unrender()}, SWORDS_HAIL_DURATION);
+    setTimeout(() => {
+      skillDisplay.unrender();
+      data.isAvailable = false;
+    }, SWORDS_HAIL_DURATION);
   }  
 }
 
@@ -537,6 +546,7 @@ function createSkillDisplayData(type, isBack) {
     template: skillDisplaysDefaultData[type].template,
     damage: Weapon[type].damage,
     isBack: isBack,
+    isAvailable: true,
     speed: skillDisplaysDefaultData[type].speed,
     damagedMonsters: []
   };
@@ -580,6 +590,8 @@ function renderIndicators() {
     const indicator = new Indicator(indicatorData);
     userInfo.append(indicator.render());
 
+    setInterval(rechargeIndicator, INDICATORS_RECHARGE_TIME);
+
     requestAnimationFrame(changeIndicatorLevel);
 
     function changeIndicatorLevel() {
@@ -587,6 +599,14 @@ function renderIndicators() {
         indicator.change(indicatorData.level);
 
         requestAnimationFrame(changeIndicatorLevel);
+      }
+    }
+
+    function rechargeIndicator() {
+      indicatorData.level += indicatorData.rechargePerSecond;
+
+      if (indicatorData.level > 100) {
+        indicatorData.level = 100;
       }
     }
   });
