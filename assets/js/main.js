@@ -278,13 +278,13 @@ function renderKnight() {
   }
 
   function checkKnightForBlock() {
-    if (skillsData["block"].isActive) {
+    if (skillsData.block.isActive) {
       knight.block();
     }
   }
 
   function checkKnightForAttack() {
-    if (skillsData["sword"].isActive) {
+    if (skillsData.sword.isActive) {
       knight.attack();
     }
   }
@@ -308,7 +308,7 @@ function renderKnight() {
     knightData.isDamaged = true;
     knightData.healthLevel -= damage; 
 
-    indicatorsData["xp"].level = knightData.healthLevel;
+    indicatorsData.xp.level = knightData.healthLevel;
   }
 
   function changeKnightPosition() {
@@ -325,7 +325,7 @@ function renderKnight() {
 }
 
 function isKnightDamaged(monster) {
-  if (monster.isAlive && !skillsData["block"].isActive) {
+  if (monster.isAlive && !skillsData.block.isActive) {
     return knightData.position <= monster.position + monster.width && knightData.position + knightData.width >= monster.position;
   }
 }
@@ -436,7 +436,7 @@ function renderMonster(monsterData) {
   function removeMonster() {
     if (monster) {
       monster.unrender();
-      scoreData["kills"].value++;
+      scoreData.kills.value++;
     }
 
     monster = null;
@@ -458,13 +458,13 @@ function renderMonster(monsterData) {
       }
     });
 
-    if (isKnightDamaged(monsterData) && skillsData["sword"].isActive && !skillsData["sword"].damagedMonsters.includes(monster)) {
-      damageMonster(skillsData["sword"].damage);
+    if (isKnightDamaged(monsterData) && skillsData.sword.isActive && !skillsData.sword.damagedMonsters.includes(monster)) {
+      damageMonster(skillsData.sword.damage);
 
-      skillsData["sword"].damagedMonsters.push(monster);
+      skillsData.sword.damagedMonsters.push(monster);
 
       setTimeout(() => {
-        skillsData["sword"].damagedMonsters = [];
+        skillsData.sword.damagedMonsters = [];
       }, 1000);
     }
   }
@@ -527,7 +527,7 @@ function renderSkills() {
 
     skill.onActivate = (evt) => {
       if (evt.key === skillsData[type].key) {
-        if (skillsData[type].key === skillsData["swordsHail"].key) {
+        if (skillsData[type].key === skillsData.swordsHail.key) {
           useSwordsHail(knightData.isBack);
           
           setTimeout(() => {
@@ -537,7 +537,7 @@ function renderSkills() {
           }, skillsData[type].rechargeTime);
         }
 
-        if (skillsData[type].key === skillsData["swordsTrio"].key) {
+        if (skillsData[type].key === skillsData.swordsTrio.key) {
           useSwordsTrio(knightData.isBack);  
 
           setTimeout(() => {
@@ -547,12 +547,12 @@ function renderSkills() {
           }, skillsData[type].rechargeTime);
         }
 
-        if (skillsData[type].key === skillsData["block"].key || skillsData[type].key === skillsData["sword"].key) {
+        if (skillsData[type].key === skillsData.block.key || skillsData[type].key === skillsData.sword.key) {
           document.addEventListener('keyup', onSkillKeyUp);
         }
 
         if (skillsData[type].isAvailable) {
-          indicatorsData["mp"].level -= skillsData[type].magicLevelConsumption;
+          indicatorsData.mp.level -= skillsData[type].magicLevelConsumption;
         }
 
         skill.activate();
@@ -572,7 +572,7 @@ function renderSkills() {
 }
 
 function useSwordsTrio(isBack) {
-  if (skillsData["swordsTrio"].isAvailable) {
+  if (skillsData.swordsTrio.isAvailable) {
     const data = createSkillDisplayData("swordsTrio", isBack);
     const skillDisplay = new SkillDisplay(data);
 
@@ -601,7 +601,7 @@ function useSwordsTrio(isBack) {
 }
 
 function useSwordsHail(isBack) {
-  if (skillsData["swordsHail"].isAvailable) {
+  if (skillsData.swordsHail.isAvailable) {
     const data = createSkillDisplayData("swordsHail", isBack);
     const skillDisplay = new SkillDisplay(data);
   
@@ -739,7 +739,7 @@ function renderScore() {
 
     function changeCurrentKillsCount() {
       if (settings.isStarted) {
-        score.change(scoreData["kills"].value);
+        score.change(scoreData.kills.value);
       }
 
       requestAnimationFrame(changeCurrentKillsCount);
