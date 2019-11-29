@@ -293,7 +293,7 @@ function renderKnight() {
     monstersData.forEach(monsterData => {
       if (isKnightDamaged(monsterData) && !monsterData.isAttack) {
         damageKnight(monsterData.damage);
-        changeMonsterAttackStatus(monsterData);        
+        changeMonsterAttackStatus(monsterData);     
       }
     });
   }
@@ -457,6 +457,16 @@ function renderMonster(monsterData) {
         skillDisplay.damagedMonsters.push(monster);
       }
     });
+
+    if (isKnightDamaged(monsterData) && skillsData["sword"].isActive && !skillsData["sword"].damagedMonsters.includes(monster)) {
+      damageMonster(skillsData["sword"].damage);
+
+      skillsData["sword"].damagedMonsters.push(monster);
+
+      setTimeout(() => {
+        skillsData["sword"].damagedMonsters = [];
+      }, 1000);
+    }
   }
 
   function damageMonster(damage) {
