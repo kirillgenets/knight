@@ -129,6 +129,7 @@ const knightDefaultData = {
   runGif: 'run.gif',
   idleGif: 'idle.gif',
   blockGif: 'block.gif',
+  attackGif: 'attack.gif',
   isBack: false
 }
 
@@ -216,6 +217,7 @@ function createKnightData() {
     runGif: knightDefaultData.runGif,
     idleGif: knightDefaultData.idleGif,
     blockGif: knightDefaultData.blockGif,
+    attackGif: knightDefaultData.attackGif,
     isMoving: false,
     isDamaged: false
   }
@@ -269,8 +271,22 @@ function renderKnight() {
 
     checkKnightForDamage();
     checkKnightForAliveness();
+    checkKnightForBlock();
+    checkKnightForAttack();
 
     requestAnimationFrame(moveKnight);
+  }
+
+  function checkKnightForBlock() {
+    if (skillsData["block"].isActive) {
+      knight.block();
+    }
+  }
+
+  function checkKnightForAttack() {
+    if (skillsData["sword"].isActive) {
+      knight.attack();
+    }
   }
 
   function checkKnightForDamage() {
@@ -583,8 +599,8 @@ function useSwordsHail(isBack) {
 
     setTimeout(() => {
       skillDisplay.unrender();
-      data.isAvailable = false;
       data.isActive = false;
+      data.isAvailable = false;
     }, SWORDS_HAIL_DURATION);
   }  
 }
@@ -738,6 +754,8 @@ class Knight {
     this._className = props.className; 
     this._runGif = props.runGif;
     this._idleGif = props.idleGif;
+    this._attackGif = props.attackGif;
+    this._blockGif = props.blockGif;
     
     this._onRun = null;
     this._onStop = null;
@@ -799,13 +817,19 @@ class Knight {
   move(newPos) {
     this._position = newPos;
     this._element.style.left = `${this._position}px`;
-    this.isMoving = true;
     this._element.style.backgroundImage = `url(${IMG_PATH}${this._runGif})`;
     this._changeDirection();
   }
 
+  attack() {
+    this._element.style.backgroundImage = `url(${IMG_PATH}${this._attackGif})`;
+  }
+
+  block() {
+    this._element.style.backgroundImage = `url(${IMG_PATH}${this._blockGif})`;
+  }
+
   stop() {
-    this.isMoving = false;
     this._element.style.backgroundImage = `url(${IMG_PATH}${this._idleGif})`;
   }
 
@@ -860,7 +884,6 @@ class Enemy {
   move(newPos) {
     this._position = newPos;
     this._element.style.left = `${this._position}px`;
-    this.isMoving = true;
     this._changeDirection();
   }
 }
