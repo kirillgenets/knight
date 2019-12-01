@@ -66,65 +66,65 @@ const Monster = {
 
 let usersResults = JSON.stringify([
   {
+    id: 1,
 		name: 'Влад',
     score: 18,
     time: '12:43'
 	},
 	{
+    id: 2,
 		name: 'Иван',
     score: 5,
     time: '12:43'
 	},
 	{
+    id: 3,
 		name: 'Дима',
     score: 73,
     time: '12:43'
 	},
 	{
+    id: 4,
 		name: 'Игорь',
     score: 2,
     time: '12:43'
 	},
 	{
+    id: 5,
 		name: 'Кирилл',
     score: 19,
     time: '12:43'
 	},
 	{
+    id: 6,
 		name: 'Лёша',
     score: 5,
     time: '12:43'
 	},
 	{
+    id: 7,
 		name: 'Вася',
     score: 7,
     time: '12:43'
 	},
 	{
+    id: 8,
 		name: 'Лёня',
     score: 29,
     time: '12:43'
 	},
 	{
+    id: 9,
 		name: 'Руслан',
     score: 11,
     time: '12:43'
 	},
 	{
+    id: 10,
 		name: 'Аслан',
     score: 13,
     time: '12:43'
-	},
-	{
-		name: 'Виктор',
-    score: 24,
-    time: '12:43'
-	},
-	{
-		name: 'Катя',
-    score: 16,
-    time: '12:43'
-	},
+	}
 ]);
 
 let knight = ''; // в эту переменную запишется объект рыцаря

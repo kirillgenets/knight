@@ -1,10 +1,11 @@
+'use strict';
+
 const BACKGROUND_SIZE = 9558,
   START_MONSTERS_COUNT = 3,
   WEAPON_AND_KNIGHT_GAP = 70,
   SWORDS_TRIO_DURATION = 18000,
   SWORDS_HAIL_DURATION = 2600,
-  USER_NAME_TEMPLATE = '<div class="user-info"></div>',
-  MONSTERS_ATTACK_SPEED = 1000
+  MONSTERS_ATTACK_SPEED = 1000,
   INDICATORS_RECHARGE_TIME = 1000,
   IMG_PATH = './assets/img/';
 
@@ -17,13 +18,14 @@ const startPage = document.querySelector('.screen-start'),
   pauseModal = gamePage.querySelector('.pause'),
   skillsWrapper = gamePage.querySelector('.game-panel-skills'),
   rankingPage = document.querySelector('.screen-ranking'),
-  scoreWrapper = gamePage.querySelector('.game-panel-scores')
+  scoreWrapper = gamePage.querySelector('.game-panel-scores'),
   rankingTable = rankingPage.querySelector('.ranking-table'),
   playAgainButton = rankingPage.querySelector('.play-again');
 
 const settings = {
   username: 'user',
   isStarted: false,
+  isOver: false,
   startTime: '',
   pauseTime: '',
   backgroundPosition: BACKGROUND_SIZE,
@@ -94,12 +96,12 @@ const Weapon = {
 const skillDisplaysDefaultData = {
   swordsTrio: {
     width: 90,
-    template: `<div class="swords-trio"></div>`,
+    template: `<div class="skill-display swords-trio"></div>`,
     speed: 1.7
   },
   swordsHail: {
     width: 191,
-    template: `<img class="swords-hail" src="assets/img/swords-hail.gif"></img>`,
+    template: `<img class="skill-display swords-hail" src="assets/img/swords-hail.gif"></img>`,
     speed: 0
   }
 }
@@ -130,6 +132,7 @@ const knightDefaultData = {
   idleGif: 'idle.gif',
   blockGif: 'block.gif',
   attackGif: 'attack.gif',
+  deathGif: 'death.gif',
   isBack: false
 }
 
@@ -146,6 +149,69 @@ const scoreDefaultData = {
   }
 }
 
+let usersResults = JSON.stringify([
+  {
+    id: 1,
+		name: 'Влад',
+    score: 187,
+    time: '11:42'
+	},
+	{
+    id: 2,
+		name: 'Иван',
+    score: 53,
+    time: '00:57'
+	},
+	{
+    id: 3,
+		name: 'Дима',
+    score: 73,
+    time: '11:11'
+	},
+	{
+    id: 4,
+		name: 'Игорь',
+    score: 212,
+    time: '01:58'
+	},
+	{
+    id: 5,
+		name: 'Кирилл',
+    score: 119,
+    time: '01:59'
+	},
+	{
+    id: 6,
+		name: 'Лёша',
+    score: 53,
+    time: '04:03'
+	},
+	{
+    id: 7,
+		name: 'Вася',
+    score: 7,
+    time: '00:29'
+	},
+	{
+    id: 8,
+		name: 'Лёня',
+    score: 29,
+    time: '10:31'
+	},
+	{
+    id: 9,
+		name: 'Руслан',
+    score: 11,
+    time: '03:31'
+	},
+	{
+    id: 10,
+		name: 'Аслан',
+    score: 13,
+    time: '02:43'
+	}
+]);
+
 let gameWidth = document.documentElement.clientWidth;
 
 const monsterTypesArr = Object.keys(Monster);
@@ -153,9 +219,9 @@ const weaponTypesArr = Object.keys(Weapon);
 const indicatorTypesArr = Object.keys(indicatorsDefaultData);
 const scoreTypesArr = Object.keys(scoreDefaultData);
 
-const skillsData = {};
-const monstersData = [];
-const skillDisplaysData = [];
+let skillsData = {};
+let monstersData = [];
+let skillDisplaysData = [];
 let indicatorsData = {};
 let scoreData = {};
 let knightData = {};
@@ -175,18 +241,44 @@ function onStartFormSubmit(evt) {
   initGame();
 }
 
+function onEscKeyDown(evt) {
+  if (evt.key === 'Escape') {
+    pauseModal.classList.toggle('hidden');
+    settings.isStarted = !settings.isStarted;
+
+    settings.pauseTime = settings.pauseTime ? settings.pauseTime : Date.now();
+  }
+}
+
+function onPlayAgainButtonClick() {
+  initGame();
+} 
+
 // ИГРОВЫЕ ФУНКЦИИ
 
 function initGame() {
   if (!settings.isStarted) {
+    settings.isOver = false;
     settings.isStarted = true;
 
-    startPage.classList.add('hidden');
+    settings.backgroundPosition = BACKGROUND_SIZE;
+    gamePage.style.backgroundPosition = `${settings.backgroundPosition}px 0`;
     
+
+    startPage.classList.add('hidden');
+    rankingPage.classList.add('hidden');
+
+    clearAllData();   
+    clearAllObjects();
     createStartData();
     renderAllObjects();
     
     settings.startTime = Date.now();
+
+    document.addEventListener('keydown', onEscKeyDown);
+    nameField.removeEventListener('input', onNameFieldInput);
+    startForm.removeEventListener('submit', onStartFormSubmit);
+    playAgainButton.removeEventListener('click', onPlayAgainButtonClick);
   }  
 }
 
@@ -206,6 +298,113 @@ function renderAllObjects() {
   renderScore();
 }
 
+function overGame() {
+  settings.isStarted = false;
+  settings.isOver = true;
+
+  saveResult();
+  showResult();
+
+  playAgainButton.addEventListener('click', onPlayAgainButtonClick);
+}
+
+function clearAllData() {
+  skillsData = {};
+  monstersData = [];
+  skillDisplaysData = [];
+  indicatorsData = {};
+  scoreData = {};
+  knightData = {};
+
+  settings.startTime = '';
+  settings.pauseTime = '';
+  settings.backgroundPosition = BACKGROUND_SIZE;
+}
+
+function clearAllObjects() {
+  [...document.querySelectorAll('.monster')].forEach(monster => { monster.remove(); });
+  [...document.querySelectorAll('.skill-display')].forEach(skillDisplay => { skillDisplay.remove(); });
+}
+
+function saveResult() {
+  usersResults = JSON.parse(usersResults);
+
+  const currentResult = {
+    id: usersResults.length + 1,
+		name: settings.username,
+    score: scoreData.kills.value,
+    time: scoreData.timer.value
+  };
+
+	const lastUserResult = usersResults.filter(result => result.name === settings.name);
+
+	if (lastUserResult.length > 0) {
+		usersResults.splice(usersResults.indexOf(lastUserResult[0]), 1);
+  } 
+  
+  usersResults.length -= 1;
+  usersResults.push(currentResult);
+}
+
+function showResult() {
+  rankingPage.classList.remove('hidden');
+  rankingTable.innerHTML = '';
+
+  const sortedResult = getSortedResult();
+  rankingTable.append(createTable());
+
+  usersResults = JSON.stringify(usersResults);
+  localStorage.setItem('usersResults', usersResults);
+
+  function createTable() {
+    const fragment = document.createDocumentFragment();
+
+    createTableHeader();
+    createTableBody();
+
+    return fragment;
+
+    function createTableBody() {
+      sortedResult.forEach(result => {
+        fragment.append(createElement(
+          `<tr>
+            <td>${result.id}</td>
+            <td>${result.name}</td>
+            <td>${result.score}</td>
+            <td>${result.time}</td>
+          </tr>`
+        ));
+      });
+    }
+
+    function createTableHeader() {
+      fragment.append(createElement(
+        `<tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Killed monsters</th>
+          <th>Time</th>
+        </tr>`
+      ));
+    }
+  }
+}
+
+function getSortedResult() {
+  return usersResults.sort((a, b) => {
+    const timeArrA = a.time.split(':');
+    const timeArrB = b.time.split(':');
+    const timeA = +timeArrA[0] * 60 + +timeArrA[1];
+    const timeB = +timeArrB[0] * 60 + +timeArrB[1];
+
+    if (b.score === a.score && timeA !== timeB) {
+      return timeB - timeA;
+    }
+
+    return b.score - a.score
+  });
+}
+
 function createKnightData() {
   knightData = {
     className: knightDefaultData.className,
@@ -218,6 +417,7 @@ function createKnightData() {
     idleGif: knightDefaultData.idleGif,
     blockGif: knightDefaultData.blockGif,
     attackGif: knightDefaultData.attackGif,
+    deathGif: knightDefaultData.deathGif,
     isMoving: false,
     isDamaged: false
   }
@@ -252,29 +452,41 @@ function renderKnight() {
   requestAnimationFrame(moveKnight);
 
   function moveKnight() {
-    if (knightData.isMoving) {
-      changeKnightPosition();
-
-      if (isKnightInTheMiddle()) {
-        moveBackground();
-        knightData.speed = 0;
+    if (settings.isStarted) {
+      if (knightData.isMoving) {
+        changeKnightPosition();
+  
+        if (isKnightInTheMiddle()) {
+          moveBackground();
+          knightData.speed = 0;
+        }
+  
+        if (settings.backgroundPosition === 0 || settings.backgroundPosition === BACKGROUND_SIZE) {
+          knightData.speed = knightDefaultData.speed;
+        }
+        
+        knightData.isMoving = true;
+        knight.isBack = knightData.isBack;
+        knight.move(knightData.position);
       }
+  
+      checkKnightForDamage();
+      checkKnightForAliveness();
+      checkKnightForBlock();
+      checkKnightForAttack();
+      checkKnightForVictory();
+    }    
 
-      if (settings.backgroundPosition === 0 || settings.backgroundPosition === BACKGROUND_SIZE) {
-        knightData.speed = knightDefaultData.speed;
-      }
-      
-      knightData.isMoving = true;
-      knight.isBack = knightData.isBack;
-      knight.move(knightData.position);
+    if (!settings.isOver) {
+      requestAnimationFrame(moveKnight);
     }
+  }
 
-    checkKnightForDamage();
-    checkKnightForAliveness();
-    checkKnightForBlock();
-    checkKnightForAttack();
-
-    requestAnimationFrame(moveKnight);
+  function checkKnightForVictory() {
+    if (knightData.position >= gameWidth - knightData.width) {
+      knight.unrender();
+      overGame();
+    } 
   }
 
   function checkKnightForBlock() {
@@ -300,7 +512,10 @@ function renderKnight() {
 
   function checkKnightForAliveness() {
     if (knightData.healthLevel <= 0) {
-      console.log('dead');
+      knight.die();
+      knight.unrender();
+
+      overGame();
     }
   }
 
@@ -383,11 +598,21 @@ function renderMonster(monsterData) {
       changeMonsterSpeed();
       checkMonsterForDamage();
       checkMonsterForAliveness();
+      checkForGameOver();
 
       if (monster) {
         monster.move(monsterData.position);
-        requestAnimationFrame(moveMonster);
       }        
+    }
+
+    if (monster && !settings.isOver) {
+      requestAnimationFrame(moveMonster);
+    }
+  }
+
+  function checkForGameOver() {
+    if (settings.isOver) {
+      monster.unrender();
     }
   }
 
@@ -502,7 +727,7 @@ function getMonsterStartPosition() {
 }
 
 function createSkillsData() {
-  for (key in Weapon) {
+  for (let key in Weapon) {
     skillsData[key] = Object.assign({}, Weapon[key]);
     skillsData[key].isActive = false;
     skillsData[key].isAvailable = true;
@@ -523,10 +748,10 @@ function renderSkills() {
     const skill = new Skill(skillsData[type]);
     skillsFragment.append(skill.render());
 
-    skill.bind();
+    skill.bind(); 
 
     skill.onActivate = (evt) => {
-      if (evt.key === skillsData[type].key) {
+      if (evt.key === skillsData[type].key && settings.isStarted) {
         if (skillsData[type].key === skillsData.swordsHail.key) {
           useSwordsHail(knightData.isBack);
           
@@ -568,6 +793,18 @@ function renderSkills() {
     }
 
     skillsWrapper.append(skillsFragment);
+
+    requestAnimationFrame(checkForGameOver);
+
+    function checkForGameOver() {
+      if (settings.isOver) {
+        skill.unbind();
+      }
+
+      if (settings.isStarted && !settings.isOver) {
+        requestAnimationFrame(checkForGameOver);
+      }
+    }
   });
 }
 
@@ -593,9 +830,11 @@ function useSwordsTrio(isBack) {
         }
         
         skillDisplay.move(data.position);
-
-        requestAnimationFrame(moveSwordsTrio);
       }
+
+      if (!settings.isOver) {
+        requestAnimationFrame(moveSwordsTrio);
+      }      
     }
   }  
 }
@@ -645,7 +884,14 @@ function setSkillDisplayPosition(isBack) {
 }
 
 function createIndicatorsData() {
+  resetIndicatorDefaultValues();
   indicatorsData = Object.assign({}, indicatorsDefaultData);
+}
+
+function resetIndicatorDefaultValues() {
+  indicatorTypesArr.forEach(type => {
+    indicatorsDefaultData[type].level = 100;
+  });
 }
 
 function renderUserInfo() {
@@ -656,7 +902,7 @@ function renderUserInfo() {
 }
 
 function renderUserName() {
-  const userName = createElement(USER_NAME_TEMPLATE);
+  const userName = createElement('<div class="user-info"></div>');
   userName.textContent = settings.username;
   userInfo.append(userName);
 }
@@ -667,16 +913,16 @@ function renderIndicators() {
     const indicator = new Indicator(indicatorData);
     userInfo.append(indicator.render());
 
-    setInterval(rechargeIndicator, INDICATORS_RECHARGE_TIME);
+    const rechargeInterval = setInterval(rechargeIndicator, INDICATORS_RECHARGE_TIME);
 
     requestAnimationFrame(changeIndicatorLevel);
 
     function changeIndicatorLevel() {
-      if (settings.isStarted) {
-        indicator.change(indicatorData.level);
+      indicator.change(indicatorData.level);
 
+      if (!settings.isOver) {
         requestAnimationFrame(changeIndicatorLevel);
-      }
+      }      
     }
 
     function rechargeIndicator() {
@@ -690,6 +936,14 @@ function renderIndicators() {
     }
 
     function isNeedToRecharge() {
+      if (!settings.isStarted) {
+        return false;
+      }
+
+      if (settings.isOver) {
+        clearInterval(rechargeInterval);
+      }
+
       if (type === 'xp') {
         return true;
       }
@@ -700,6 +954,7 @@ function renderIndicators() {
 }
 
 function createScoreData() {
+  scoreDefaultData.kills.value = 0;
   scoreData = Object.assign({}, scoreDefaultData);
 }
 
@@ -721,6 +976,11 @@ function renderScore() {
 
     function changeCurrentTime() {
       if (settings.isStarted) {
+        if (settings.pauseTime) {
+          settings.startTime += (Date.now() - settings.pauseTime);
+          settings.pauseTime = '';
+        }
+
         let timeStr = '';
     
         const currentTime = Math.floor((Date.now() - settings.startTime) / 1000);
@@ -733,8 +993,11 @@ function renderScore() {
         data.value = timeStr;
         score.change(timeStr);
       }
-    
-      requestAnimationFrame(changeCurrentTime);
+
+      if (!settings.isOver) {
+        requestAnimationFrame(changeCurrentTime);
+      }   
+      
     }
 
     function changeCurrentKillsCount() {
@@ -742,13 +1005,15 @@ function renderScore() {
         score.change(scoreData.kills.value);
       }
 
-      requestAnimationFrame(changeCurrentKillsCount);
+      if (!settings.isOver) {
+        requestAnimationFrame(changeCurrentKillsCount);
+      }      
     }
   });
 }
 
 function createElement(template) {
-  const wrapper = document.createElement('div');
+  const wrapper = document.createElement('table');
   wrapper.innerHTML = template;  
   
   return wrapper.firstChild;
@@ -766,6 +1031,7 @@ class Knight {
     this._idleGif = props.idleGif;
     this._attackGif = props.attackGif;
     this._blockGif = props.blockGif;
+    this._deathGif = props.deathGif;
     
     this._onRun = null;
     this._onStop = null;
@@ -820,23 +1086,42 @@ class Knight {
     return this._element = createElement(this.template);
   }
 
-  unrender(container) {
-    container.remove(this._element);
+  unrender() {
+    if (this._element) {
+      this._element.remove();
+      this._element = null;
+    }    
   }
 
   move(newPos) {
-    this._position = newPos;
-    this._element.style.left = `${this._position}px`;
-    this._element.style.backgroundImage = `url(${IMG_PATH}${this._runGif})`;
-    this._changeDirection();
+    if (this._element) {
+      this._position = newPos;
+      this._element.style.left = `${this._position}px`;
+      this._element.style.backgroundImage = `url(${IMG_PATH}${this._runGif})`;
+      this._changeDirection();
+    }     
   }
 
   attack() {
-    this._element.style.backgroundImage = `url(${IMG_PATH}${this._attackGif})`;
+    if (this._element) {
+      this._element.style.backgroundImage = `url(${IMG_PATH}${this._attackGif})`;
+    }
   }
 
   block() {
-    this._element.style.backgroundImage = `url(${IMG_PATH}${this._blockGif})`;
+    if (this._element) {
+      this._element.style.backgroundImage = `url(${IMG_PATH}${this._blockGif})`;
+    }
+  }
+
+  die() {
+    if (this._element) {
+      this._element.style.backgroundImage = `url(${IMG_PATH}${this._deathGif})`;
+      this._element.style.backgroundSize = `100%`;
+    }    
+
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
   }
 
   stop() {
@@ -887,14 +1172,18 @@ class Enemy {
   }
 
   unrender() {
-    this._element.remove();
-    this._element = null;
+    if (this._element) {
+      this._element.remove();
+      this._element = null;
+    }    
   }
 
   move(newPos) {
-    this._position = newPos;
-    this._element.style.left = `${this._position}px`;
-    this._changeDirection();
+    if (this._element) {
+      this._position = newPos;
+      this._element.style.left = `${this._position}px`;
+      this._changeDirection();
+    }    
   }
 }
 
@@ -945,6 +1234,10 @@ class Skill {
 
   bind() {
     document.addEventListener(`keydown`, this._onActivateKeydown);
+  }
+
+  unbind() {
+    document.removeEventListener(`keydown`, this._onActivateKeydown);
   }
 }
 
@@ -1011,11 +1304,14 @@ class Indicator {
   }
 
   change(value) {
-    if (value >= 0) {
-      this._level = value;
-      this._element.querySelector('.score-value').style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(0,0,0,1) ${this._level}%)`;
-      this._element.querySelector('span').textContent = this._level;
-    }    
+    this._level = value;
+
+    if (value < 0) {
+      this._level = 0;
+    }
+
+    this._element.querySelector('.score-value').style.background = `linear-gradient(90deg, ${this._color} ${this._level}%, rgba(0,0,0,1) ${this._level}%)`;
+    this._element.querySelector('span').textContent = this._level;   
   }
 }
 
