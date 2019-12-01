@@ -653,7 +653,7 @@ function renderMonster(monsterData) {
   }
 
   function checkMonsterForAliveness() {
-    if (monsterData.healthLevel <= 0) {
+    if (monsterData.healthLevel <= 0 || monsterData.position + monsterData.width <= 0) {
       removeMonster();
     }
   }
